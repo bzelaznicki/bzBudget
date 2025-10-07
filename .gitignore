@@ -33,8 +33,12 @@ yarn-error.log*
 =======
 # local env files
 .env*.local
+<<<<<<< HEAD
 >>>>>>> 2b54789 (Initialize web application via create-cloudflare CLI)
 
+=======
+.env
+>>>>>>> 04349e2 (gitignore setup)
 # vercel
 .vercel
 
