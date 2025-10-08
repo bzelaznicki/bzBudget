@@ -39,9 +39,22 @@ export const transactions = pgTable('transactions', {
 	usersId: uuid("users_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 	accountsId: uuid("accounts_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
 	amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+	description: text(),
+	counterparties: text().notNull(),
 	currenciesId: uuid("currencies_id").references(() => currencies.id),
+	categoriesId: uuid("categories_id").references(() => categories.id, { onDelete: "cascade" }),
 	type: transactionsTypeEnum("type").notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const categoriesTypeEnum = pgEnum('categories_type', ['system', 'user']);
+
+export const categories = pgTable('categories', {
+	id: uuid("id").primaryKey().defaultRandom(),
+	name: text("name").notNull(),
+	type: categoriesTypeEnum().notNull().default("system"),
+	usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
+	createdAt: timestamp("created_at").defaultNow(),
+	updatedAt: timestamp("updated_at").defaultNow(),
+});
