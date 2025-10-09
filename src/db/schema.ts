@@ -6,8 +6,8 @@ export const users = pgTable('users', {
 	firstName: text("first_name"),
 	lastName: text("last_name"),
 	email: text("email").notNull().unique(),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const currenciesPositionEnum = pgEnum('currenciesPosition', ['before', 'after']);
