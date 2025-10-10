@@ -1,4 +1,4 @@
-export async function respondWithJSON(code: number, data: unknown) {
+export function respondWithJSON(code: number, data: unknown) {
 	if (typeof data !== "object" && typeof data !== "string") {
 		throw new Error("Payload must be an object or a string");
 	}
@@ -8,10 +8,27 @@ export async function respondWithJSON(code: number, data: unknown) {
 	return res;
 }
 
-export async function respondWithError(code: number, data: unknown, err?: unknown) {
+export function respondWithError(code: number, message: string, err?: unknown) {
 	if (err) {
-		console.log(err);
+		console.log(errStringFromError(err));
 	}
 
-	return respondWithJSON(code, data);
+	return respondWithJSON(code, { error: message });
+}
+
+
+function errStringFromError(err: unknown): string {
+	if (typeof err === "string") {
+		return err;
+	}
+
+	if (err instanceof Error) {
+		return err.message;
+	}
+
+	if (err) {
+		return String(err);
+	}
+
+	return "An unknown error has occurred";
 }
