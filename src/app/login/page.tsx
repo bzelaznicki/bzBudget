@@ -135,7 +135,7 @@ export default function SignIn() {
 				</CardContent>
 				<CardFooter className="border-t border-gray-100 bg-gray-50/60 py-4">
 					<p className="text-sm text-gray-600">
-						New to BZBudget?{" "}
+						New to bzBudget?{" "}
 						<Link
 							href="/register"
 							className="font-medium text-emerald-600 transition hover:text-emerald-700"
