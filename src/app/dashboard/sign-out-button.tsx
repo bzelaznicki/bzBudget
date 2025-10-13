@@ -27,6 +27,7 @@ export function SignOutButton() {
 	return (
 		<Button
 			type="button"
+			variant="outline"
 			className="gap-2 shadow-sm"
 			disabled={loading}
 			onClick={handleSignOut}

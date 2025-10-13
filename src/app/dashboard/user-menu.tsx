@@ -58,15 +58,23 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 
 	return (
 		<div
-			className="relative"
+			className="group relative"
 			onMouseEnter={() => setOpen(true)}
 			onMouseLeave={() => setOpen(false)}
-		>
+			onFocus={() => setOpen(true)}
+			onBlur={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget)) {
+					setOpen(false);
+				}
+			}}
+			>
 			<button
 				type="button"
-				className="flex items-center gap-3 rounded-full border border-emerald-100 bg-white/80 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:bg-white"
+				className="flex w-full items-center gap-3 rounded-full border border-emerald-100 bg-white/80 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
 				aria-haspopup="true"
 				aria-expanded={open}
+				tabIndex={0}
+				onClick={() => setOpen((prev) => !prev)}
 			>
 				<UserAvatar name={name} image={image} />
 				<div className="hidden text-left text-sm leading-tight text-gray-700 sm:block">

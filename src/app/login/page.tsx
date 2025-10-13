@@ -105,7 +105,8 @@ export default function SignIn() {
 
 						<Button
 							type="button"
-							className="w-full bg-emerald-600 hover:bg-emerald-500"
+							variant="primary"
+							className="w-full"
 							disabled={loading}
 							onClick={async () => {
 								await signIn.email(
