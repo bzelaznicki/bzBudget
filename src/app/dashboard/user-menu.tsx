@@ -70,7 +70,7 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 			>
 			<button
 				type="button"
-				className="flex w-full items-center gap-3 rounded-full border border-emerald-100 bg-white/80 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
+				className="flex w-full items-center gap-3 rounded-full border border-emerald-100 bg-white/80 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
 				aria-haspopup="true"
 				aria-expanded={open}
 				tabIndex={0}
