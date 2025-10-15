@@ -40,8 +40,8 @@ export const users = pgTable(
 
 export const currencies = pgTable("currencies", {
 	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	isoCode: text("iso_code").notNull(),
+	name: text("name").notNull().unique(),
+	isoCode: text("iso_code").notNull().unique(),
 	symbol: text("symbol").notNull(),
 	position: currenciesPositionEnum("position").default("after"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
