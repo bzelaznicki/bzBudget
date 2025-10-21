@@ -105,7 +105,7 @@ export default function SignIn() {
 
 						<Button
 							type="button"
-							variant="primary"
+							variant="default"
 							className="w-full"
 							disabled={loading}
 							onClick={async () => {
