@@ -1,3 +1,176 @@
+import { db } from "../db";
+import { transactions, currencies } from "../schema";
+import { sql, and, gte, lt, eq, sum } from "drizzle-orm";
+
+export type DashboardResponse = {
+
+	current: number;
+	previous: number;
+
+	currency: {
+		isoCode: string;
+		symbol: string;
+		position: "before" | "after" | null
+	}
+
+}
+
+export async function dashboardIncomeSummary(userId: string): Promise<DashboardResponse[] | null> {
+	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
+
+	const currentRows = await db
+		.select({
+			symbol: currencies.symbol,
+			isoCode: currencies.isoCode,
+			position: currencies.position,
+			total: sum(transactions.amount)
+		})
+		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.where(
+			and(
+				gte(transactions.bookedAt, startOfCurrentMonth),
+				lt(transactions.bookedAt, startOfNextMonth),
+				eq(transactions.usersId, userId),
+				eq(transactions.type, "incoming")
+			)
+		).groupBy(currencies.id);
+
+	const previousRows = await db
+		.select({
+			symbol: currencies.symbol,
+			isoCode: currencies.isoCode,
+			position: currencies.position,
+			total: sum(transactions.amount)
+		})
+		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.where(
+			and(
+				gte(transactions.bookedAt, startOfPreviousMonth),
+				lt(transactions.bookedAt, startOfCurrentMonth),
+				eq(transactions.usersId, userId),
+				eq(transactions.type, "incoming")
+			)
+		).groupBy(currencies.id);
+
+	const currencyTotals = new Map<string, DashboardResponse>();
+
+	for (const row of currentRows) {
+		const current = Number(row.total ?? 0);
+		currencyTotals.set(row.isoCode, {
+			current,
+			previous: 0,
+			currency: {
+				isoCode: row.isoCode,
+				symbol: row.symbol,
+				position: row.position,
+			},
+		});
+	}
+
+	for (const row of previousRows) {
+		const previous = Number(row.total ?? 0);
+		const existing = currencyTotals.get(row.isoCode);
+
+		if (existing) {
+			existing.previous = previous;
+		} else {
+			currencyTotals.set(row.isoCode, {
+				current: 0,
+				previous,
+				currency: {
+					isoCode: row.isoCode,
+					symbol: row.symbol,
+					position: row.position,
+				},
+			});
+		}
+	}
+
+	return Array.from(currencyTotals.values()) ?? null;
+}
+
+export async function dashboardExpensesSummary(userId: string): Promise<DashboardResponse[] | null> {
+	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
+
+	const currentRows = await db
+		.select({
+			symbol: currencies.symbol,
+			isoCode: currencies.isoCode,
+			position: currencies.position,
+			total: sum(transactions.amount)
+		})
+		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.where(
+			and(
+				gte(transactions.bookedAt, startOfCurrentMonth),
+				lt(transactions.bookedAt, startOfNextMonth),
+				eq(transactions.usersId, userId),
+				eq(transactions.type, "outgoing")
+			)
+		).groupBy(currencies.id);
+
+	const previousRows = await db
+		.select({
+			symbol: currencies.symbol,
+			isoCode: currencies.isoCode,
+			position: currencies.position,
+			total: sum(transactions.amount)
+		})
+		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.where(
+			and(
+				gte(transactions.bookedAt, startOfPreviousMonth),
+				lt(transactions.bookedAt, startOfCurrentMonth),
+				eq(transactions.usersId, userId),
+				eq(transactions.type, "outgoing")
+			)
+		).groupBy(currencies.id);
+
+	const currencyTotals = new Map<string, DashboardResponse>();
+
+	for (const row of currentRows) {
+		const current = Number(row.total ?? 0);
+		currencyTotals.set(row.isoCode, {
+			current,
+			previous: 0,
+			currency: {
+				isoCode: row.isoCode,
+				symbol: row.symbol,
+				position: row.position,
+			},
+		});
+	}
+
+	for (const row of previousRows) {
+		const previous = Number(row.total ?? 0);
+		const existing = currencyTotals.get(row.isoCode);
+
+		if (existing) {
+			existing.previous = previous;
+		} else {
+			currencyTotals.set(row.isoCode, {
+				current: 0,
+				previous,
+				currency: {
+					isoCode: row.isoCode,
+					symbol: row.symbol,
+					position: row.position,
+				},
+			});
+		}
+	}
+
+	return Array.from(currencyTotals.values()) ?? null;
+}
+
 export type DashboardSummary = {
 	income: {
 		current: number;
@@ -25,6 +198,7 @@ export type DashboardSummary = {
 		position: "before" | "after";
 	};
 };
+
 
 const fallbackSummary: DashboardSummary = {
 	income: { current: 12450.32, previous: 11210.45 },
