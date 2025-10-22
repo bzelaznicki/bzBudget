@@ -14,6 +14,21 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+	year: "numeric",
+	month: "short",
+	day: "numeric",
+})
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+	year: "numeric",
+	month: "short",
+	day: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: true,
+})
+
 function toDate(value: Date | string | null | undefined) {
   if (!value) return null;
   const parsed = value instanceof Date ? value : new Date(value);
@@ -26,23 +41,13 @@ function toDate(value: Date | string | null | undefined) {
 function formatDisplayDate(value: Date | string | null | undefined) {
   const date = toDate(value);
   if (!date) return null;
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return DATE_FORMATTER.format(date);
 }
 
 function formatDateTime(value: Date | string | null | undefined) {
   const date = toDate(value);
   if (!date) return "Unknown";
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return DATE_TIME_FORMATTER.format(date);
 }
 
 function sessionDeviceName(userAgent: string | null | undefined) {

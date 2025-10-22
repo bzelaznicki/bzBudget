@@ -19,10 +19,10 @@ import {
 	IconChevronUp,
 	IconChevronsLeft,
 	IconChevronsRight,
-	IconPlus,
 } from "@tabler/icons-react"
 
 import type { TransactionResponse } from "@/db/queries/transactions"
+import { AddTransactionDialog } from "@/components/add-transaction-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +44,15 @@ type TransactionRow = TransactionResponse & {
 const PAGE_SIZE_OPTIONS = ["10", "20", "50"]
 const ALL_OPTION = "all"
 const UNCATEGORIZED_OPTION = "uncategorized"
+const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB")
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+	year: "numeric",
+	month: "short",
+	day: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: true,
+})
 
 const columns: ColumnDef<TransactionRow>[] = [
 	{
@@ -123,15 +132,21 @@ const columns: ColumnDef<TransactionRow>[] = [
 ]
 
 export function TransactionsTableClient({ data }: { data: TransactionResponse[] }) {
+	const [transactions, setTransactions] = React.useState<TransactionResponse[]>(data)
+
+	React.useEffect(() => {
+		setTransactions(data)
+	}, [data])
+
 	const preparedData = React.useMemo<TransactionRow[]>(() => {
-		return data.map((transaction) => ({
+		return transactions.map((transaction) => ({
 			...transaction,
 			amountNumber: parseAmount(transaction.amount),
 			bookedAtDate: toDate(transaction.bookedAt),
 			createdAtDate: toDate(transaction.createdAt),
 			updatedAtDate: toDate(transaction.updatedAt),
 		}))
-	}, [data])
+	}, [transactions])
 
 	const [selectedCurrency, setSelectedCurrency] = React.useState<string>(ALL_OPTION)
 	const [selectedCategory, setSelectedCategory] =
@@ -143,6 +158,17 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 		pageIndex: 0,
 		pageSize: Number(PAGE_SIZE_OPTIONS[0]),
 	})
+
+	const handleTransactionCreated = React.useCallback(
+		(transaction: TransactionResponse) => {
+			setTransactions((prev) => [transaction, ...prev])
+			setPagination((prev) => ({
+				...prev,
+				pageIndex: 0,
+			}))
+		},
+		[setPagination],
+	)
 
 	const currencyOptions = React.useMemo(() => {
 		const uniqueCurrencies = new Map<string, TransactionRow["currency"]>()
@@ -311,20 +337,21 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 							</Select>
 						</div>
 					</div>
-					<Button variant="outline" size="sm" className="gap-1.5 self-start sm:self-auto">
-						<IconPlus className="size-4" />
-						Add transaction
-					</Button>
+					<div className="self-start sm:self-auto">
+						<AddTransactionDialog
+							onTransactionCreated={handleTransactionCreated}
+						/>
+					</div>
 				</div>
 				<div className="text-sm text-muted-foreground">
-					Showing {displayFrom.toLocaleString()} – {displayTo.toLocaleString()} of{" "}
-					{totalRows.toLocaleString()}
+					Showing {NUMBER_FORMATTER.format(displayFrom)} – {NUMBER_FORMATTER.format(displayTo)} of{" "}
+					{NUMBER_FORMATTER.format(totalRows)}
 					{(selectedCurrency !== ALL_OPTION ||
 						selectedCategory !== ALL_OPTION) &&
-					totalRecords > 0 ? (
+						totalRecords > 0 ? (
 						<>
 							{" "}
-							(filtered from {totalRecords.toLocaleString()})
+							(filtered from {NUMBER_FORMATTER.format(totalRecords)})
 						</>
 					) : null}
 				</div>
@@ -369,7 +396,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 				<div className="text-sm text-muted-foreground">
-					Page {currentPage.toLocaleString()} of {table.getPageCount().toLocaleString()}
+					Page {NUMBER_FORMATTER.format(currentPage)} of {NUMBER_FORMATTER.format(table.getPageCount())}
 				</div>
 				<div className="flex items-center gap-1">
 					<Button
@@ -471,14 +498,14 @@ function formatAmount(amount: number, currency: TransactionResponse["currency"])
 	if (!Number.isFinite(amount) || !currency) return "—"
 
 	try {
-		const formatter = new Intl.NumberFormat("en-US", {
+		const formatter = new Intl.NumberFormat("en-GB", {
 			style: "currency",
 			currency: currency.isoCode ?? "USD",
 		})
 		return formatter.format(amount)
 	} catch {
 		const fallbackSymbol = currency.symbol ?? currency.isoCode
-		const formatted = amount.toLocaleString(undefined, {
+		const formatted = amount.toLocaleString("en-GB", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		})
@@ -506,11 +533,5 @@ function CurrencyBadge({
 
 function formatDateTime(date: Date | null) {
 	if (!date) return "—"
-	return date.toLocaleString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-	})
+	return DATE_TIME_FORMATTER.format(date)
 }

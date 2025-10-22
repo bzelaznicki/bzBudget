@@ -21,11 +21,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
+const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB")
+
 type TrendDirection = "up" | "down" | "flat"
 
 function formatCurrencyValue(amount: number, currencyCode: string) {
 	try {
-		return new Intl.NumberFormat("en-US", {
+		return new Intl.NumberFormat("en-GB", {
 			style: "currency",
 			currency: currencyCode,
 			minimumFractionDigits: 2,
@@ -79,11 +81,11 @@ function absoluteChange(
 	const delta = current - previous
 
 	if (delta > 0) {
-		return { label: `+${delta.toLocaleString()}`, direction: "up" }
+		return { label: `+${NUMBER_FORMATTER.format(delta)}`, direction: "up" }
 	}
 
 	if (delta < 0) {
-		return { label: `${delta.toLocaleString()}`, direction: "down" }
+		return { label: `${NUMBER_FORMATTER.format(delta)}`, direction: "down" }
 	}
 
 	return { label: "0", direction: "flat" }
@@ -288,7 +290,7 @@ async function NetCard() {
 			value={formatCurrencyValue(summary.net.current, currencyCode)}
 			change={change}
 			footerHeadline={trendLabel(direction, "Cash flow")}
-			footerSupport={`${summary.transactions.current.toLocaleString()} transactions logged this month`}
+			footerSupport={`${NUMBER_FORMATTER.format(summary.transactions.current)} transactions logged this month`}
 		/>
 	)
 }
@@ -304,11 +306,11 @@ async function AccountsCard() {
 	return (
 		<SummaryCard
 			title="Active accounts"
-			value={summary.accounts.total.toLocaleString()}
+			value={NUMBER_FORMATTER.format(summary.accounts.total)}
 			change={change}
 			footerHeadline={
 				summary.accounts.newThisMonth > 0
-					? `${summary.accounts.newThisMonth} new accounts added`
+					? `${NUMBER_FORMATTER.format(summary.accounts.newThisMonth)} new accounts added`
 					: "No new accounts this month"
 			}
 			footerSupport="Linked accounts tracked in bzBudget"
