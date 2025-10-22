@@ -29,6 +29,9 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar"
 
+import { authClient } from "@/lib/auth-client";
+import { redirect } from "next/navigation";
+
 function getInitials(name: string) {
 	const matches = name.matchAll(/(?:^|[^\p{L}\p{N}])(\p{L})/gu);
 	const letters = Array.from(matches, m => m[1]);
@@ -78,7 +81,7 @@ export function NavUser({
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 								<Avatar className="h-8 w-8 rounded-lg">
 									{user.image ? <AvatarImage src={user.image} alt={user.name} /> :
-										<AvatarFallback className="rounded-lg">CN</AvatarFallback>}
+										<AvatarFallback className="rounded-lg">{initials}</AvatarFallback>}
 								</Avatar>
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-medium">{user.name}</span>
@@ -104,7 +107,13 @@ export function NavUser({
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem>
+						<DropdownMenuItem onClick={() => void authClient.signOut({
+							fetchOptions: {
+								onSuccess: () => {
+									redirect("/login");
+								}
+							}
+						})}>
 							<IconLogout />
 							Log out
 						</DropdownMenuItem>
