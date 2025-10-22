@@ -151,8 +151,8 @@ function SummaryCard({
 				<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 					{value}
 				</CardTitle>
-				<CardAction>
-					<Badge variant="outline">
+				<CardAction className="max-w-full">
+					<Badge variant="outline" className="max-w-full truncate">
 						{trendIcon(change.direction)}
 						{change.label}
 					</Badge>
