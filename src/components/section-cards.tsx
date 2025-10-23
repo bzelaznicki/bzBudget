@@ -6,7 +6,7 @@ import {
 	IconTrendingUp,
 } from "@tabler/icons-react"
 import { redirect } from "next/navigation";
-import { getDashboardSummary, dashboardIncomeSummary, dashboardExpensesSummary } from "@/db/queries/dashboard"
+import { getDashboardSummary, dashboardIncomeSummary, dashboardExpensesSummary, dashboardNetSummary, dashboardCountTransactions } from "@/db/queries/dashboard"
 import { Badge } from "@/components/ui/badge"
 import {
 	Card,
@@ -120,7 +120,7 @@ export async function SectionCards() {
 				<ExpensesCard userId={session?.user.id} />
 			</Suspense>
 			<Suspense fallback={<SummaryCardSkeleton title="Net cash flow" />}>
-				<NetCard />
+				<NetCard userId={session?.user.id} />
 			</Suspense>
 			<Suspense fallback={<SummaryCardSkeleton title="Active accounts" />}>
 				<AccountsCard />
@@ -267,30 +267,37 @@ async function ExpensesCard(props: CardProps) {
 	)
 }
 
-async function NetCard() {
-	const summary = await loadSummary()
-	const currencyCode = summary.currency?.isoCode ?? "USD"
-	const netDelta = summary.net.current - summary.net.previous
-	const direction =
-		netDelta > 0 ? "up" : netDelta < 0 ? "down" : ("flat" as TrendDirection)
-	const change =
-		netDelta === 0
-			? {
-				label: formatCurrencyValue(0, currencyCode),
-				direction,
-			}
-			: {
-				label: formatCurrencyWithSign(netDelta, currencyCode),
-				direction,
-			}
+async function NetCard(props: CardProps) {
+	const summary = await dashboardNetSummary(props.userId);
+	const firstEntry = summary?.[0]
+
+	if (!firstEntry) {
+		return (
+			<SummaryCard
+				title="Expenses this month"
+				value="None"
+				change={{ label: "Waiting on data", direction: "flat" }}
+				footerHeadline="Log your first expense"
+				footerSupport="Add an expense transaction to view trends"
+			/>
+		)
+	}
+
+	const transactionCount = await dashboardCountTransactions(props.userId);
+
+	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
+	const change = percentChange(
+		firstEntry.current,
+		firstEntry.previous,
+	)
 
 	return (
 		<SummaryCard
 			title="Net cash flow"
-			value={formatCurrencyValue(summary.net.current, currencyCode)}
+			value={formatCurrencyValue(firstEntry.current, currencyCode)}
 			change={change}
-			footerHeadline={trendLabel(direction, "Cash flow")}
-			footerSupport={`${NUMBER_FORMATTER.format(summary.transactions.current)} transactions logged this month`}
+			footerHeadline={trendLabel(change.direction, "Cash flow")}
+			footerSupport={`${transactionCount ? transactionCount.counts : "0"} transactions this month`}
 		/>
 	)
 }

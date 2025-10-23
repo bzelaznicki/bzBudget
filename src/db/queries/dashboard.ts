@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { transactions, currencies } from "../schema";
-import { sql, and, gte, lt, eq, sum } from "drizzle-orm";
+import { sql, and, gte, lt, eq, sum, count } from "drizzle-orm";
 
 export type DashboardResponse = {
 
@@ -16,6 +16,9 @@ export type DashboardResponse = {
 }
 
 export async function dashboardIncomeSummary(userId: string): Promise<DashboardResponse[] | null> {
+	if (!userId) {
+		return null;
+	}
 	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
 	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
 	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
@@ -94,6 +97,9 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 }
 
 export async function dashboardExpensesSummary(userId: string): Promise<DashboardResponse[] | null> {
+	if (!userId) {
+		return null;
+	}
 	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
 	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
 	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
@@ -169,6 +175,76 @@ export async function dashboardExpensesSummary(userId: string): Promise<Dashboar
 	}
 
 	return Array.from(currencyTotals.values()) ?? null;
+}
+
+export async function dashboardNetSummary(
+	userId: string,
+): Promise<DashboardResponse[] | null> {
+	if (!userId) {
+		return null;
+	}
+	const [income, expenses] = await Promise.all([
+		dashboardIncomeSummary(userId),
+		dashboardExpensesSummary(userId),
+	]);
+
+	const netByCurrency = new Map<string, DashboardResponse>();
+
+	for (const incomeRow of income ?? []) {
+		const isoCode = incomeRow.currency?.isoCode;
+		if (!isoCode) {
+			continue;
+		}
+
+		netByCurrency.set(isoCode, {
+			current: incomeRow.current,
+			previous: incomeRow.previous,
+			currency: incomeRow.currency,
+		});
+	}
+
+	for (const expenseRow of expenses ?? []) {
+		const isoCode = expenseRow.currency?.isoCode;
+		if (!isoCode) {
+			continue;
+		}
+
+		const existing = netByCurrency.get(isoCode);
+
+		if (existing) {
+			existing.current -= expenseRow.current;
+			existing.previous -= expenseRow.previous;
+		} else {
+			netByCurrency.set(isoCode, {
+				current: -expenseRow.current,
+				previous: -expenseRow.previous,
+				currency: expenseRow.currency,
+			});
+		}
+	}
+
+	return Array.from(netByCurrency.values()) ?? null;
+}
+
+export async function dashboardCountTransactions(userId: string) {
+	if (!userId) {
+		return null;
+	}
+
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
+
+
+	const data = await db.select({
+		counts: count(),
+	}).from(transactions).where(
+		and(
+			gte(transactions.bookedAt, startOfCurrentMonth),
+			lt(transactions.bookedAt, startOfNextMonth),
+			eq(transactions.usersId, userId),
+		));
+
+	return data[0];
 }
 
 export type DashboardSummary = {
