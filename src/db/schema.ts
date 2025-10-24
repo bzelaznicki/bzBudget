@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -30,6 +31,8 @@ export const users = pgTable(
 		email: text("email").notNull(),
 		emailVerified: boolean("email_verified").notNull().default(false),
 		image: text("image"),
+		defaultCurrenciesId: uuid("default_currencies_id")
+			.references(() => currencies.id, { onDelete: "restrict" }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
