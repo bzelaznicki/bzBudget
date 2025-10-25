@@ -9,9 +9,7 @@ export interface CategoryResponse {
 	type: "system" | "user"
 }
 
-export async function listUserCategories(
-	usersId: string,
-): Promise<CategoryResponse[]> {
+export async function listUserCategories(usersId: string): Promise<CategoryResponse[]> {
 	const records = await db
 		.select({
 			id: categories.id,

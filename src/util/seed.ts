@@ -1,9 +1,9 @@
-import "dotenv/config";
+import "dotenv/config"
 
-import { db } from "@/db/db";
-import { currencies } from "@/db/schema";
+import { db } from "@/db/db"
+import { currencies } from "@/db/schema"
 
-type CurrencyInsert = typeof currencies.$inferInsert;
+type CurrencyInsert = typeof currencies.$inferInsert
 
 const currencySeed: CurrencyInsert[] = [
 	{ name: "United Arab Emirates Dirham", isoCode: "AED", symbol: "د.إ", position: "before" },
@@ -16,7 +16,12 @@ const currencySeed: CurrencyInsert[] = [
 	{ name: "Australian Dollar", isoCode: "AUD", symbol: "A$", position: "before" },
 	{ name: "Aruban Florin", isoCode: "AWG", symbol: "Aƒ", position: "before" },
 	{ name: "Azerbaijani Manat", isoCode: "AZN", symbol: "₼", position: "before" },
-	{ name: "Bosnia and Herzegovina Convertible Mark", isoCode: "BAM", symbol: "KM", position: "after" },
+	{
+		name: "Bosnia and Herzegovina Convertible Mark",
+		isoCode: "BAM",
+		symbol: "KM",
+		position: "after",
+	},
 	{ name: "Barbados Dollar", isoCode: "BBD", symbol: "Bds$", position: "before" },
 	{ name: "Bangladeshi Taka", isoCode: "BDT", symbol: "৳", position: "before" },
 	{ name: "Bulgarian Lev", isoCode: "BGN", symbol: "лв", position: "after" },
@@ -165,22 +170,19 @@ const currencySeed: CurrencyInsert[] = [
 	{ name: "South African Rand", isoCode: "ZAR", symbol: "R", position: "before" },
 	{ name: "Zambian Kwacha", isoCode: "ZMW", symbol: "ZK", position: "before" },
 	{ name: "Zimbabwean Dollar", isoCode: "ZWL", symbol: "Z$", position: "before" },
-];
+]
 
 async function main() {
-	await db
-		.insert(currencies)
-		.values(currencySeed)
-		.onConflictDoNothing({
-			target: currencies.isoCode,
-		});
+	await db.insert(currencies).values(currencySeed).onConflictDoNothing({
+		target: currencies.isoCode,
+	})
 
-	console.log(`Seeded ${currencySeed.length} currencies`);
+	console.log(`Seeded ${currencySeed.length} currencies`)
 }
 
 main()
 	.then(() => process.exit(0))
 	.catch((error) => {
-		console.error(error);
-		process.exit(1);
-	});
+		console.error(error)
+		process.exit(1)
+	})

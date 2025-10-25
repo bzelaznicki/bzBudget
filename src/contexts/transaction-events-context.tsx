@@ -38,9 +38,7 @@ export function TransactionEventsProvider({ children }: { children: React.ReactN
 	)
 
 	return (
-		<TransactionEventsContext.Provider value={value}>
-			{children}
-		</TransactionEventsContext.Provider>
+		<TransactionEventsContext.Provider value={value}>{children}</TransactionEventsContext.Provider>
 	)
 }
 

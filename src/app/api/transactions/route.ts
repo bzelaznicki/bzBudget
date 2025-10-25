@@ -2,10 +2,7 @@ import { headers } from "next/headers"
 
 import { createTransaction } from "@/db/queries/transactions"
 import { auth } from "@/lib/auth"
-import {
-	transactionPayloadSchema,
-	type TransactionPayload,
-} from "@/lib/validation/transactions"
+import { transactionPayloadSchema, type TransactionPayload } from "@/lib/validation/transactions"
 import { respondWithError, respondWithJSON } from "@/util/json"
 
 export async function POST(req: Request) {
@@ -18,8 +15,7 @@ export async function POST(req: Request) {
 		const parsed = transactionPayloadSchema.safeParse(json)
 
 		if (!parsed.success) {
-			const message =
-				parsed.error.errors[0]?.message ?? "Invalid transaction payload"
+			const message = parsed.error.errors[0]?.message ?? "Invalid transaction payload"
 			return respondWithError(400, message)
 		}
 
@@ -36,8 +32,7 @@ export async function POST(req: Request) {
 		}
 
 		const description = payload.description?.trim()
-		const normalizedDescription =
-			description && description.length > 0 ? description : undefined
+		const normalizedDescription = description && description.length > 0 ? description : undefined
 
 		const transaction = await createTransaction(
 			session.user.id,

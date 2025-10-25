@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
 	Card,
 	CardContent,
@@ -8,21 +8,21 @@ import {
 	CardTitle,
 	CardDescription,
 	CardFooter,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
-import Link from "next/link";
-import { AuthScaffold } from "@/components/auth/auth-scaffold";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
+import { signIn } from "@/lib/auth-client"
+import Link from "next/link"
+import { AuthScaffold } from "@/components/auth/auth-scaffold"
 
 export default function SignIn() {
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [loading, setLoading] = useState(false);
-	const [rememberMe, setRememberMe] = useState(false);
+	const [email, setEmail] = useState("")
+	const [password, setPassword] = useState("")
+	const [loading, setLoading] = useState(false)
+	const [rememberMe, setRememberMe] = useState(false)
 
 	return (
 		<AuthScaffold
@@ -62,7 +62,7 @@ export default function SignIn() {
 								placeholder="m@example.com"
 								required
 								onChange={(e) => {
-									setEmail(e.target.value);
+									setEmail(e.target.value)
 								}}
 								value={email}
 							/>
@@ -95,7 +95,7 @@ export default function SignIn() {
 									id="remember"
 									checked={rememberMe}
 									onChange={(event) => {
-										setRememberMe(event.target.checked);
+										setRememberMe(event.target.checked)
 									}}
 								/>
 								Remember me
@@ -117,20 +117,16 @@ export default function SignIn() {
 									},
 									{
 										onRequest: () => {
-											setLoading(true);
+											setLoading(true)
 										},
 										onResponse: () => {
-											setLoading(false);
+											setLoading(false)
 										},
 									},
-								);
+								)
 							}}
 						>
-							{loading ? (
-								<Loader2 size={16} className="animate-spin" />
-							) : (
-								<span>Sign in</span>
-							)}
+							{loading ? <Loader2 size={16} className="animate-spin" /> : <span>Sign in</span>}
 						</Button>
 					</div>
 				</CardContent>
@@ -147,5 +143,5 @@ export default function SignIn() {
 				</CardFooter>
 			</Card>
 		</AuthScaffold>
-	);
+	)
 }

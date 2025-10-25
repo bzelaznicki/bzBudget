@@ -19,7 +19,14 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import {
 	Select,
@@ -28,10 +35,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
-import {
-	transactionFormSchema,
-	type TransactionFormValues,
-} from "@/lib/validation/transactions"
+import { transactionFormSchema, type TransactionFormValues } from "@/lib/validation/transactions"
 
 type TransactionMetaResponse = {
 	accounts: BankAccountResponse[]
@@ -76,16 +80,13 @@ export function TransactionDialog({
 				setMetaError(null)
 				const response = await fetch("/api/transactions/meta")
 				if (!response.ok) {
-					const errorBody = (await response.json().catch(() => null)) as
-						| { error?: string }
-						| null
+					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null
 					throw new Error(errorBody?.error ?? "Unable to load form data")
 				}
 				const data = (await response.json()) as TransactionMetaResponse
 				setMeta(data)
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Unable to load form data"
+				const message = error instanceof Error ? error.message : "Unable to load form data"
 				setMetaError(message)
 			} finally {
 				setMetaLoading(false)
@@ -143,8 +144,7 @@ export function TransactionDialog({
 			}
 
 			const description = values.description?.trim()
-			const normalizedDescription =
-				description && description.length > 0 ? description : undefined
+			const normalizedDescription = description && description.length > 0 ? description : undefined
 
 			const payload = {
 				accountsId: values.accountsId,
@@ -167,9 +167,7 @@ export function TransactionDialog({
 				})
 
 				if (!response.ok) {
-					const errorBody = (await response.json().catch(() => null)) as
-						| { error?: string }
-						| null
+					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null
 					throw new Error(errorBody?.error ?? "Unable to create transaction")
 				}
 
@@ -180,10 +178,7 @@ export function TransactionDialog({
 				form.reset(buildDefaultValues(meta))
 				onOpenChange(false)
 			} catch (error) {
-				const message =
-					error instanceof Error
-						? error.message
-						: "Unable to create transaction"
+				const message = error instanceof Error ? error.message : "Unable to create transaction"
 				toast.error(message)
 			}
 		},
@@ -193,8 +188,7 @@ export function TransactionDialog({
 	const categories = meta?.categories ?? []
 	const accounts = meta?.accounts ?? []
 	const currencies = meta?.currencies ?? []
-	const submitDisabled =
-		isSubmitting || accounts.length === 0 || currencies.length === 0
+	const submitDisabled = isSubmitting || accounts.length === 0 || currencies.length === 0
 	const showAccountHint = accounts.length === 0 && !metaLoading
 
 	return (
@@ -216,10 +210,7 @@ export function TransactionDialog({
 					</div>
 				) : (
 					<Form {...form}>
-						<form
-							onSubmit={form.handleSubmit(onSubmit)}
-							className="grid gap-5"
-						>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
 							{showAccountHint ? (
 								<div className="rounded-md border border-muted-foreground/20 bg-muted/40 p-3 text-sm text-muted-foreground">
 									Add an account in settings before recording transactions.
@@ -247,7 +238,9 @@ export function TransactionDialog({
 													disabled={metaLoading || accounts.length === 0 || isSubmitting}
 												>
 													<SelectTrigger className="w-full">
-														<SelectValue placeholder={metaLoading ? "Loading..." : "Select account"} />
+														<SelectValue
+															placeholder={metaLoading ? "Loading..." : "Select account"}
+														/>
 													</SelectTrigger>
 													<SelectContent>
 														{accounts.map((account) => (
@@ -275,7 +268,9 @@ export function TransactionDialog({
 													disabled={metaLoading || currencies.length === 0 || isSubmitting}
 												>
 													<SelectTrigger className="w-full">
-														<SelectValue placeholder={metaLoading ? "Loading..." : "Select currency"} />
+														<SelectValue
+															placeholder={metaLoading ? "Loading..." : "Select currency"}
+														/>
 													</SelectTrigger>
 													<SelectContent>
 														{currencies.map((currency) => (
@@ -345,11 +340,7 @@ export function TransactionDialog({
 										<FormItem>
 											<FormLabel>Booked at *</FormLabel>
 											<FormControl>
-												<Input
-													{...field}
-													type="datetime-local"
-													disabled={isSubmitting}
-												/>
+												<Input {...field} type="datetime-local" disabled={isSubmitting} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -377,7 +368,9 @@ export function TransactionDialog({
 														<SelectValue placeholder="Select category" />
 													</SelectTrigger>
 													<SelectContent>
-														<SelectItem value={UNCATEGORIZED_SELECT_VALUE}>Uncategorized</SelectItem>
+														<SelectItem value={UNCATEGORIZED_SELECT_VALUE}>
+															Uncategorized
+														</SelectItem>
 														{categories.map((category) => (
 															<SelectItem key={category.id} value={category.id}>
 																{category.name}
@@ -398,11 +391,7 @@ export function TransactionDialog({
 									<FormItem>
 										<FormLabel>Counterparty *</FormLabel>
 										<FormControl>
-											<Input
-												{...field}
-												placeholder="e.g. Grocery store"
-												disabled={isSubmitting}
-											/>
+											<Input {...field} placeholder="e.g. Grocery store" disabled={isSubmitting} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -448,16 +437,12 @@ export function TransactionDialog({
 	)
 }
 
-function buildDefaultValues(
-	meta: TransactionMetaResponse | null,
-): TransactionFormValues {
+function buildDefaultValues(meta: TransactionMetaResponse | null): TransactionFormValues {
 	const now = formatDateTimeLocal(new Date())
-	const defaultAccount =
-		meta?.accounts.length === 1 ? meta.accounts[0] : undefined
+	const defaultAccount = meta?.accounts.length === 1 ? meta.accounts[0] : undefined
 	const defaultCurrencyFromAccount = defaultAccount?.currenciesId
 	const defaultCurrency =
-		defaultCurrencyFromAccount ??
-		(meta?.currencies.length === 1 ? meta.currencies[0].id : "")
+		defaultCurrencyFromAccount ?? (meta?.currencies.length === 1 ? meta.currencies[0].id : "")
 
 	return {
 		accountsId: defaultAccount ? defaultAccount.id : "",

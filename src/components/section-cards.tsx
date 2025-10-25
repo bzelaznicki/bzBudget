@@ -1,12 +1,14 @@
 import { Suspense, cache } from "react"
 
+import { IconMinus, IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
+import { redirect } from "next/navigation"
 import {
-	IconMinus,
-	IconTrendingDown,
-	IconTrendingUp,
-} from "@tabler/icons-react"
-import { redirect } from "next/navigation";
-import { getDashboardSummary, dashboardIncomeSummary, dashboardExpensesSummary, dashboardNetSummary, dashboardCountTransactions } from "@/db/queries/dashboard"
+	getDashboardSummary,
+	dashboardIncomeSummary,
+	dashboardExpensesSummary,
+	dashboardNetSummary,
+	dashboardCountTransactions,
+} from "@/db/queries/dashboard"
 import { Badge } from "@/components/ui/badge"
 import {
 	Card,
@@ -18,8 +20,8 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB")
 
@@ -106,12 +108,11 @@ function trendLabel(direction: TrendDirection, entity: string) {
 const loadSummary = cache(() => getDashboardSummary("demo-user"))
 
 export async function SectionCards() {
-	const session = await auth.api.getSession({ headers: await headers() });
+	const session = await auth.api.getSession({ headers: await headers() })
 
 	if (!session) {
 		redirect("/login")
 	}
-
 
 	return (
 		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
@@ -139,13 +140,7 @@ type SummaryCardProps = {
 	footerSupport: string
 }
 
-function SummaryCard({
-	title,
-	value,
-	change,
-	footerHeadline,
-	footerSupport,
-}: SummaryCardProps) {
+function SummaryCard({ title, value, change, footerHeadline, footerSupport }: SummaryCardProps) {
 	return (
 		<Card className="@container/card">
 			<CardHeader>
@@ -179,10 +174,7 @@ function SummaryCardSkeleton({ title }: { title: string }) {
 					<Skeleton className="mt-2 h-8 w-32 rounded-lg @[250px]/card:w-40" />
 				</CardTitle>
 				<CardAction>
-					<Badge
-						variant="outline"
-						className="flex items-center gap-2 pl-2 pr-3"
-					>
+					<Badge variant="outline" className="flex items-center gap-2 pl-2 pr-3">
 						<Skeleton className="h-4 w-4 rounded-full" />
 						<Skeleton className="h-4 w-12 rounded-full" />
 					</Badge>
@@ -201,8 +193,8 @@ function SummaryCardSkeleton({ title }: { title: string }) {
 }
 
 type CardProps = {
-	userId: string;
-	currencyId?: string;
+	userId: string
+	currencyId?: string
 }
 
 async function IncomeCard(props: CardProps) {
@@ -221,10 +213,7 @@ async function IncomeCard(props: CardProps) {
 		)
 	}
 	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(
-		firstEntry.current,
-		firstEntry.previous,
-	)
+	const change = percentChange(firstEntry.current, firstEntry.previous)
 
 	return (
 		<SummaryCard
@@ -238,7 +227,7 @@ async function IncomeCard(props: CardProps) {
 }
 
 async function ExpensesCard(props: CardProps) {
-	const summary = await dashboardExpensesSummary(props.userId);
+	const summary = await dashboardExpensesSummary(props.userId)
 	const firstEntry = summary?.[0]
 
 	if (!firstEntry) {
@@ -254,10 +243,7 @@ async function ExpensesCard(props: CardProps) {
 	}
 
 	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(
-		firstEntry.current,
-		firstEntry.previous,
-	)
+	const change = percentChange(firstEntry.current, firstEntry.previous)
 
 	return (
 		<SummaryCard
@@ -271,7 +257,7 @@ async function ExpensesCard(props: CardProps) {
 }
 
 async function NetCard(props: CardProps) {
-	const summary = await dashboardNetSummary(props.userId);
+	const summary = await dashboardNetSummary(props.userId)
 	const firstEntry = summary?.[0]
 
 	if (!firstEntry) {
@@ -286,13 +272,10 @@ async function NetCard(props: CardProps) {
 		)
 	}
 
-	const transactionCount = await dashboardCountTransactions(props.userId);
+	const transactionCount = await dashboardCountTransactions(props.userId)
 
 	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(
-		firstEntry.current,
-		firstEntry.previous,
-	)
+	const change = percentChange(firstEntry.current, firstEntry.previous)
 
 	return (
 		<SummaryCard
@@ -307,10 +290,7 @@ async function NetCard(props: CardProps) {
 
 async function AccountsCard() {
 	const summary = await loadSummary()
-	const previousAccounts = Math.max(
-		summary.accounts.total - summary.accounts.newThisMonth,
-		0,
-	)
+	const previousAccounts = Math.max(summary.accounts.total - summary.accounts.newThisMonth, 0)
 	const change = absoluteChange(summary.accounts.total, previousAccounts)
 
 	return (

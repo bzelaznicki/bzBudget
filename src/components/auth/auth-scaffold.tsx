@@ -1,17 +1,17 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react"
 
 interface Benefit {
-	title: string;
-	description: string;
+	title: string
+	description: string
 }
 
 interface AuthScaffoldProps {
-	highlight: string;
-	title: string;
-	description: string;
-	benefits: Benefit[];
-	children: React.ReactNode;
-	footer?: React.ReactNode;
+	highlight: string
+	title: string
+	description: string
+	benefits: Benefit[]
+	children: React.ReactNode
+	footer?: React.ReactNode
 }
 
 export function AuthScaffold({
@@ -40,9 +40,7 @@ export function AuthScaffold({
 									<CheckCircle2 className="h-4 w-4" />
 								</span>
 								<div>
-									<p className="text-sm font-medium text-gray-900 md:text-base">
-										{benefit.title}
-									</p>
+									<p className="text-sm font-medium text-gray-900 md:text-base">{benefit.title}</p>
 									<p className="text-sm text-gray-500">{benefit.description}</p>
 								</div>
 							</li>
@@ -55,5 +53,5 @@ export function AuthScaffold({
 				</div>
 			</div>
 		</div>
-	);
+	)
 }

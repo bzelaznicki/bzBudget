@@ -1,84 +1,73 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import Link from "next/link";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { getUserBankAccounts } from "@/db/queries/accounts";
-import { createBankAccount } from "@/db/queries/accounts";
-import { listCurrencies } from "@/db/queries/currencies";
-import type { BankAccountResponse } from "@/db/queries/accounts";
-import type { CurrencyResponse } from "@/db/queries/currencies";
-import { CurrencyPicker } from "./currency-picker";
-
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { getUserBankAccounts } from "@/db/queries/accounts"
+import { createBankAccount } from "@/db/queries/accounts"
+import { listCurrencies } from "@/db/queries/currencies"
+import type { BankAccountResponse } from "@/db/queries/accounts"
+import type { CurrencyResponse } from "@/db/queries/currencies"
+import { CurrencyPicker } from "./currency-picker"
 
 function formatDateTime(value: Date | string | null | undefined) {
-	if (!value) return "Unknown";
-	const date = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(date.getTime())) return "Unknown";
+	if (!value) return "Unknown"
+	const date = value instanceof Date ? value : new Date(value)
+	if (Number.isNaN(date.getTime())) return "Unknown"
 	return date.toLocaleDateString(undefined, {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
-	});
+	})
 }
 
 async function createAccountAction(formData: FormData) {
-	"use server";
+	"use server"
 
-	const session = await auth.api.getSession({ headers: await headers() });
+	const session = await auth.api.getSession({ headers: await headers() })
 
 	if (!session) {
-		redirect("/login");
+		redirect("/login")
 	}
 
-	const name = formData.get("name");
-	const currencyId = formData.get("currencyId");
-	const iban = formData.get("iban");
+	const name = formData.get("name")
+	const currencyId = formData.get("currencyId")
+	const iban = formData.get("iban")
 
-	const safeName = typeof name === "string" ? name.trim() : "";
-	const safeCurrencyId =
-		typeof currencyId === "string" ? currencyId.trim() : "";
-	const safeIban =
-		typeof iban === "string" && iban.trim().length > 0
-			? iban.trim()
-			: undefined;
+	const safeName = typeof name === "string" ? name.trim() : ""
+	const safeCurrencyId = typeof currencyId === "string" ? currencyId.trim() : ""
+	const safeIban = typeof iban === "string" && iban.trim().length > 0 ? iban.trim() : undefined
 
 	if (!safeName || !safeCurrencyId) {
-		revalidatePath("/settings/accounts");
-		return;
+		revalidatePath("/settings/accounts")
+		return
 	}
 
-	await createBankAccount(session.user.id, safeName, safeCurrencyId, safeIban);
-	revalidatePath("/settings/accounts");
+	await createBankAccount(session.user.id, safeName, safeCurrencyId, safeIban)
+	revalidatePath("/settings/accounts")
 }
 
 export default async function AccountsPage() {
-	const session = await auth.api.getSession({ headers: await headers() });
+	const session = await auth.api.getSession({ headers: await headers() })
 
 	if (!session) {
-		redirect("/login");
+		redirect("/login")
 	}
 
 	const [accounts, currencies] = await Promise.all([
 		getUserBankAccounts(session.user.id, 50, 0),
 		listCurrencies(),
-	]);
+	])
 
-	const accountsList: BankAccountResponse[] = accounts ?? [];
-	const currencyLookup = new Map<string, CurrencyResponse>();
+	const accountsList: BankAccountResponse[] = accounts ?? []
+	const currencyLookup = new Map<string, CurrencyResponse>()
 	currencies.forEach((currency) => {
-		currencyLookup.set(currency.id, currency);
-	});
+		currencyLookup.set(currency.id, currency)
+	})
 
 	return (
 		<div className="min-h-screen bg-gray-50 px-6 py-10">
@@ -86,12 +75,10 @@ export default async function AccountsPage() {
 				<header className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-8 shadow-sm sm:flex-row sm:items-end sm:justify-between">
 					<div>
 						<p className="text-sm text-gray-500">Accounts</p>
-						<h1 className="text-3xl font-semibold text-gray-900">
-							Manage financial accounts
-						</h1>
+						<h1 className="text-3xl font-semibold text-gray-900">Manage financial accounts</h1>
 						<p className="mt-2 max-w-xl text-sm text-gray-500">
-							Add accounts manually for now. Once integrations are enabled,
-							you&apos;ll be able to connect banks directly.
+							Add accounts manually for now. Once integrations are enabled, you&apos;ll be able to
+							connect banks directly.
 						</p>
 					</div>
 					<Link
@@ -106,32 +93,27 @@ export default async function AccountsPage() {
 					<section className="space-y-6">
 						<Card className="border border-gray-100 shadow-sm">
 							<CardHeader>
-								<CardTitle className="text-lg font-semibold text-gray-900">
-									Your accounts
-								</CardTitle>
+								<CardTitle className="text-lg font-semibold text-gray-900">Your accounts</CardTitle>
 								<CardDescription className="text-sm text-gray-500">
-									Track balances, transactions, and budgets by linking each
-									account you manage in bzBudget.
+									Track balances, transactions, and budgets by linking each account you manage in
+									bzBudget.
 								</CardDescription>
 							</CardHeader>
 							<CardContent className="grid gap-4">
 								{accountsList.length === 0 ? (
 									<div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
-										No accounts yet. Use the form on the right to add your first
-										account.
+										No accounts yet. Use the form on the right to add your first account.
 									</div>
 								) : (
 									accountsList.map((account) => {
-										const currency = currencyLookup.get(account.currenciesId);
+										const currency = currencyLookup.get(account.currenciesId)
 										return (
 											<div
 												key={account.id}
 												className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white/90 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
 											>
 												<div>
-													<p className="text-sm font-medium text-gray-900">
-														{account.name}
-													</p>
+													<p className="text-sm font-medium text-gray-900">{account.name}</p>
 													<p className="text-xs text-gray-500">
 														{currency
 															? `${currency.symbol} ${currency.isoCode}`
@@ -143,7 +125,7 @@ export default async function AccountsPage() {
 													<p>Created {formatDateTime(account.createdAt)}</p>
 												</div>
 											</div>
-										);
+										)
 									})
 								)}
 							</CardContent>
@@ -153,12 +135,10 @@ export default async function AccountsPage() {
 					<aside className="space-y-6">
 						<Card className="border border-gray-100 shadow-sm">
 							<CardHeader>
-								<CardTitle className="text-lg font-semibold text-gray-900">
-									Add account
-								</CardTitle>
+								<CardTitle className="text-lg font-semibold text-gray-900">Add account</CardTitle>
 								<CardDescription className="text-sm text-gray-500">
-									Start tracking a new account by entering a name and choosing a
-									currency. You can update details later.
+									Start tracking a new account by entering a name and choosing a currency. You can
+									update details later.
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
@@ -178,15 +158,9 @@ export default async function AccountsPage() {
 									</div>
 									<div className="grid gap-2">
 										<Label htmlFor="account-iban">
-											IBAN{" "}
-											<span className="text-xs text-gray-400">(optional)</span>
+											IBAN <span className="text-xs text-gray-400">(optional)</span>
 										</Label>
-										<Input
-											id="account-iban"
-											name="iban"
-											placeholder="IBAN"
-											autoComplete="off"
-										/>
+										<Input id="account-iban" name="iban" placeholder="IBAN" autoComplete="off" />
 									</div>
 									<Button type="submit" variant="default" className="w-full">
 										Save account
@@ -198,5 +172,5 @@ export default async function AccountsPage() {
 				</main>
 			</div>
 		</div>
-	);
+	)
 }

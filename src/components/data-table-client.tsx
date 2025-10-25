@@ -32,7 +32,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table"
 import { useTransactionEvents } from "@/contexts/transaction-events-context"
 
 type TransactionRow = TransactionResponse & {
@@ -162,11 +169,8 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 	}, [transactions])
 
 	const [selectedCurrency, setSelectedCurrency] = React.useState<string>(ALL_OPTION)
-	const [selectedCategory, setSelectedCategory] =
-		React.useState<string>(ALL_OPTION)
-	const [sorting, setSorting] = React.useState<SortingState>([
-		{ id: "bookedAt", desc: true },
-	])
+	const [selectedCategory, setSelectedCategory] = React.useState<string>(ALL_OPTION)
+	const [sorting, setSorting] = React.useState<SortingState>([{ id: "bookedAt", desc: true }])
 	const [{ pageIndex, pageSize }, setPagination] = React.useState({
 		pageIndex: 0,
 		pageSize: Number(PAGE_SIZE_OPTIONS[0]),
@@ -229,8 +233,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 	const filteredData = React.useMemo(() => {
 		return preparedData.filter((transaction) => {
 			const matchesCurrency =
-				selectedCurrency === ALL_OPTION ||
-				transaction.currency.isoCode === selectedCurrency
+				selectedCurrency === ALL_OPTION || transaction.currency.isoCode === selectedCurrency
 
 			const matchesCategory =
 				selectedCategory === ALL_OPTION ||
@@ -264,8 +267,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 
 	const totalRecords = preparedData.length
 	const totalRows = table.getPrePaginationRowModel().rows.length
-	const displayFrom =
-		totalRows === 0 ? 0 : pageIndex * pageSize + 1
+	const displayFrom = totalRows === 0 ? 0 : pageIndex * pageSize + 1
 	const displayTo = Math.min(totalRows, (pageIndex + 1) * pageSize)
 	const currentPage = table.getPageCount() === 0 ? 0 : pageIndex + 1
 
@@ -299,10 +301,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 						</div>
 						<div className="flex items-center gap-2 text-sm">
 							<span className="text-muted-foreground">Currency</span>
-							<Select
-								value={selectedCurrency}
-								onValueChange={setSelectedCurrency}
-							>
+							<Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
 								<SelectTrigger className="h-8 w-[9rem]">
 									<SelectValue placeholder="All currencies" />
 								</SelectTrigger>
@@ -314,10 +313,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 											value={currency.isoCode}
 											className="flex items-center gap-2"
 										>
-											<CurrencyBadge
-												symbol={currency.symbol}
-												isoCode={currency.isoCode}
-											/>
+											<CurrencyBadge symbol={currency.symbol} isoCode={currency.isoCode} />
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -325,20 +321,14 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 						</div>
 						<div className="flex items-center gap-2 text-sm">
 							<span className="text-muted-foreground">Category</span>
-							<Select
-								value={selectedCategory}
-								onValueChange={setSelectedCategory}
-							>
+							<Select value={selectedCategory} onValueChange={setSelectedCategory}>
 								<SelectTrigger className="h-8 w-[11rem]">
 									<SelectValue placeholder="All categories" />
 								</SelectTrigger>
 								<SelectContent align="start">
 									<SelectItem value={ALL_OPTION}>All categories</SelectItem>
 									{categoryOptions.map((category) => (
-										<SelectItem
-											key={category.id}
-											value={category.id}
-										>
+										<SelectItem key={category.id} value={category.id}>
 											{category.name}
 										</SelectItem>
 									))}
@@ -347,21 +337,15 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 						</div>
 					</div>
 					<div className="self-start sm:self-auto">
-						<AddTransactionDialog
-							onTransactionCreated={handleTransactionCreated}
-						/>
+						<AddTransactionDialog onTransactionCreated={handleTransactionCreated} />
 					</div>
 				</div>
 				<div className="text-sm text-muted-foreground">
 					Showing {NUMBER_FORMATTER.format(displayFrom)} – {NUMBER_FORMATTER.format(displayTo)} of{" "}
 					{NUMBER_FORMATTER.format(totalRows)}
-					{(selectedCurrency !== ALL_OPTION ||
-						selectedCategory !== ALL_OPTION) &&
-						totalRecords > 0 ? (
-						<>
-							{" "}
-							(filtered from {NUMBER_FORMATTER.format(totalRecords)})
-						</>
+					{(selectedCurrency !== ALL_OPTION || selectedCategory !== ALL_OPTION) &&
+					totalRecords > 0 ? (
+						<> (filtered from {NUMBER_FORMATTER.format(totalRecords)})</>
 					) : null}
 				</div>
 			</div>
@@ -405,7 +389,8 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 				<div className="text-sm text-muted-foreground">
-					Page {NUMBER_FORMATTER.format(currentPage)} of {NUMBER_FORMATTER.format(table.getPageCount())}
+					Page {NUMBER_FORMATTER.format(currentPage)} of{" "}
+					{NUMBER_FORMATTER.format(table.getPageCount())}
 				</div>
 				<div className="flex items-center gap-1">
 					<Button
@@ -464,8 +449,7 @@ function SortableHeader({
 	align?: "left" | "right"
 }) {
 	const sorted = column.getIsSorted()
-	const alignmentClasses =
-		align === "right" ? "ml-auto -mr-2 justify-end" : "-ml-3 justify-start"
+	const alignmentClasses = align === "right" ? "ml-auto -mr-2 justify-end" : "-ml-3 justify-start"
 
 	return (
 		<Button
@@ -524,13 +508,7 @@ function formatAmount(amount: number, currency: TransactionResponse["currency"])
 	}
 }
 
-function CurrencyBadge({
-	symbol,
-	isoCode,
-}: {
-	symbol: string | null
-	isoCode: string
-}) {
+function CurrencyBadge({ symbol, isoCode }: { symbol: string | null; isoCode: string }) {
 	const displaySymbol = symbol ?? isoCode
 	return (
 		<Badge variant="outline" className="gap-1">
