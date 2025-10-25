@@ -20,5 +20,14 @@ export const auth = betterAuth({
 			console.log("Sent reset password");
 		},
 	},
+	user: {
+		additionalFields: {
+			defaultCurrenciesId: {
+				type: "string",
+				required: true,
+				input: false,
+			}
+		}
+	},
 	plugins: [nextCookies()],
 });
