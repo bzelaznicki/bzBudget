@@ -33,6 +33,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useTransactionEvents } from "@/contexts/transaction-events-context"
 
 type TransactionRow = TransactionResponse & {
 	amountNumber: number
@@ -138,6 +139,18 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 		setTransactions(data)
 	}, [data])
 
+	const { subscribeTransactionCreated, emitTransactionCreated } = useTransactionEvents()
+
+	React.useEffect(() => {
+		return subscribeTransactionCreated((transaction) => {
+			setTransactions((prev) => [transaction, ...prev])
+			setPagination((prev) => ({
+				...prev,
+				pageIndex: 0,
+			}))
+		})
+	}, [subscribeTransactionCreated])
+
 	const preparedData = React.useMemo<TransactionRow[]>(() => {
 		return transactions.map((transaction) => ({
 			...transaction,
@@ -161,13 +174,9 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 
 	const handleTransactionCreated = React.useCallback(
 		(transaction: TransactionResponse) => {
-			setTransactions((prev) => [transaction, ...prev])
-			setPagination((prev) => ({
-				...prev,
-				pageIndex: 0,
-			}))
+			emitTransactionCreated(transaction)
 		},
-		[setPagination],
+		[emitTransactionCreated],
 	)
 
 	const currencyOptions = React.useMemo(() => {
