@@ -7,7 +7,7 @@ import {
 	IconNotification,
 	IconUserCircle,
 } from "@tabler/icons-react"
-
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
 	DropdownMenu,
@@ -91,9 +91,11 @@ export function NavUser({
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<IconUserCircle />
-								Account
+							<DropdownMenuItem asChild>
+								<Link href="/settings/account">
+									<IconUserCircle />
+									Account
+								</Link>
 							</DropdownMenuItem>
 							<DropdownMenuItem>
 								<IconCreditCard />
