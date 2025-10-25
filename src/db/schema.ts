@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm"
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -9,13 +9,13 @@ import {
 	timestamp,
 	uniqueIndex,
 	uuid,
-} from "drizzle-orm/pg-core"
+} from "drizzle-orm/pg-core";
 
-export const categoriesTypeEnum = pgEnum("categories_type", ["system", "user"])
+export const categoriesTypeEnum = pgEnum("categories_type", ["system", "user"]);
 
-export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "after"])
+export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "after"]);
 
-export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"])
+export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"]);
 
 export const users = pgTable(
 	"users",
@@ -34,7 +34,7 @@ export const users = pgTable(
 	(table) => ({
 		emailUnique: uniqueIndex("users_email_unique").on(table.email),
 	}),
-)
+);
 
 export const currencies = pgTable("currencies", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -44,7 +44,7 @@ export const currencies = pgTable("currencies", {
 	position: currenciesPositionEnum("position").default("after"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-})
+});
 
 export const accounts = pgTable(
 	"accounts",
@@ -76,7 +76,7 @@ export const accounts = pgTable(
 		),
 		userIdIdx: index("accounts_users_id_idx").on(table.userId),
 	}),
-)
+);
 
 export const bankAccounts = pgTable("bank_accounts", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -90,7 +90,7 @@ export const bankAccounts = pgTable("bank_accounts", {
 		.references(() => currencies.id),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-})
+});
 
 export const categories = pgTable("categories", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -99,7 +99,7 @@ export const categories = pgTable("categories", {
 	usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").defaultNow(),
-})
+});
 
 export const transactions = pgTable(
 	"transactions",
@@ -131,7 +131,7 @@ export const transactions = pgTable(
 		),
 		bookedAtIdx: index("transactions_booked_at_idx").on(table.bookedAt),
 	}),
-)
+);
 
 export const sessions = pgTable(
 	"sessions",
@@ -152,7 +152,7 @@ export const sessions = pgTable(
 		expiresAtIdx: index("sessions_expires_at_idx").on(table.expiresAt),
 		userIdIdx: index("sessions_users_id_idx").on(table.userId),
 	}),
-)
+);
 
 export const verifications = pgTable(
 	"verifications",
@@ -168,4 +168,4 @@ export const verifications = pgTable(
 		identifierIdx: index("verifications_identifier_idx").on(table.identifier),
 		expiresAtIdx: index("verifications_expires_at_idx").on(table.expiresAt),
 	}),
-)
+);

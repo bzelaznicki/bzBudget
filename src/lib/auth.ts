@@ -1,7 +1,7 @@
-import { betterAuth } from "better-auth"
-import { nextCookies } from "better-auth/next-js"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { db } from "@/db/db"
+import { betterAuth } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "@/db/db";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -16,7 +16,7 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		async sendResetPassword(data, request) {
-			console.log("Sent reset password")
+			console.log("Sent reset password");
 		},
 	},
 	user: {
@@ -29,4 +29,4 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [nextCookies()],
-})
+});

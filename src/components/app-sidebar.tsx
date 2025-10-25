@@ -1,4 +1,4 @@
-import { type ComponentProps } from "react"
+import { type ComponentProps } from "react";
 import {
 	IconCamera,
 	IconChartBar,
@@ -15,12 +15,12 @@ import {
 	IconSearch,
 	IconSettings,
 	IconUsers,
-} from "@tabler/icons-react"
+} from "@tabler/icons-react";
 
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavDocuments } from "@/components/nav-documents";
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
 	Sidebar,
 	SidebarContent,
@@ -29,10 +29,10 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+} from "@/components/ui/sidebar";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 const data = {
 	user: {
@@ -149,16 +149,16 @@ const data = {
 			icon: <IconFileWord />,
 		},
 	],
-}
+};
 
 export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
-	const session = await auth.api.getSession({ headers: await headers() })
+	const session = await auth.api.getSession({ headers: await headers() });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
-	const user = session.user
+	const user = session.user;
 
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
@@ -189,5 +189,5 @@ export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 				/>
 			</SidebarFooter>
 		</Sidebar>
-	)
+	);
 }

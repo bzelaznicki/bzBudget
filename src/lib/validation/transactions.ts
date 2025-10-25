@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const transactionFormSchema = z.object({
 	accountsId: z.string().uuid({ message: "Select an account" }),
@@ -17,9 +17,9 @@ export const transactionFormSchema = z.object({
 		.refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date"),
 	description: z.string().max(500, "Description is too long").optional(),
 	categoriesId: z.string().uuid().optional(),
-})
+});
 
-export type TransactionFormValues = z.infer<typeof transactionFormSchema>
+export type TransactionFormValues = z.infer<typeof transactionFormSchema>;
 
 export const transactionPayloadSchema = z.object({
 	accountsId: z.string().uuid(),
@@ -30,6 +30,6 @@ export const transactionPayloadSchema = z.object({
 	bookedAt: z.string().refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date"),
 	description: z.string().optional(),
 	categoriesId: z.string().uuid().optional(),
-})
+});
 
-export type TransactionPayload = z.infer<typeof transactionPayloadSchema>
+export type TransactionPayload = z.infer<typeof transactionPayloadSchema>;

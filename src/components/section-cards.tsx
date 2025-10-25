@@ -1,15 +1,15 @@
-import { Suspense, cache } from "react"
+import { Suspense, cache } from "react";
 
-import { IconMinus, IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
-import { redirect } from "next/navigation"
+import { IconMinus, IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
+import { redirect } from "next/navigation";
 import {
 	getDashboardSummary,
 	dashboardIncomeSummary,
 	dashboardExpensesSummary,
 	dashboardNetSummary,
 	dashboardCountTransactions,
-} from "@/db/queries/dashboard"
-import { Badge } from "@/components/ui/badge"
+} from "@/db/queries/dashboard";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardAction,
@@ -17,15 +17,15 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
-const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB")
+const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB");
 
-type TrendDirection = "up" | "down" | "flat"
+type TrendDirection = "up" | "down" | "flat";
 
 function formatCurrencyValue(amount: number, currencyCode: string) {
 	try {
@@ -34,20 +34,20 @@ function formatCurrencyValue(amount: number, currencyCode: string) {
 			currency: currencyCode,
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
-		}).format(amount)
+		}).format(amount);
 	} catch {
-		return amount.toFixed(2)
+		return amount.toFixed(2);
 	}
 }
 
 function formatCurrencyWithSign(amount: number, currencyCode: string) {
 	if (amount === 0) {
-		return formatCurrencyValue(0, currencyCode)
+		return formatCurrencyValue(0, currencyCode);
 	}
 
-	const formatted = formatCurrencyValue(Math.abs(amount), currencyCode)
-	const prefix = amount > 0 ? "+" : "-"
-	return `${prefix}${formatted}`
+	const formatted = formatCurrencyValue(Math.abs(amount), currencyCode);
+	const prefix = amount > 0 ? "+" : "-";
+	return `${prefix}${formatted}`;
 }
 
 function percentChange(
@@ -55,63 +55,63 @@ function percentChange(
 	previous: number,
 ): { label: string; direction: TrendDirection } {
 	if (!Number.isFinite(current) || !Number.isFinite(previous)) {
-		return { label: "—", direction: "flat" }
+		return { label: "—", direction: "flat" };
 	}
 
 	if (previous === 0) {
 		if (current === 0) {
-			return { label: "0%", direction: "flat" }
+			return { label: "0%", direction: "flat" };
 		}
 
-		return { label: "New", direction: "up" }
+		return { label: "New", direction: "up" };
 	}
 
-	const delta = ((current - previous) / Math.abs(previous)) * 100
-	const decimals = Math.abs(delta) >= 10 ? 0 : 1
-	const formatted = delta.toFixed(decimals)
+	const delta = ((current - previous) / Math.abs(previous)) * 100;
+	const decimals = Math.abs(delta) >= 10 ? 0 : 1;
+	const formatted = delta.toFixed(decimals);
 
 	return {
 		label: delta > 0 ? `+${formatted}%` : `${formatted}%`,
 		direction: delta > 0 ? "up" : delta < 0 ? "down" : "flat",
-	}
+	};
 }
 
 function absoluteChange(
 	current: number,
 	previous: number,
 ): { label: string; direction: TrendDirection } {
-	const delta = current - previous
+	const delta = current - previous;
 
 	if (delta > 0) {
-		return { label: `+${NUMBER_FORMATTER.format(delta)}`, direction: "up" }
+		return { label: `+${NUMBER_FORMATTER.format(delta)}`, direction: "up" };
 	}
 
 	if (delta < 0) {
-		return { label: `${NUMBER_FORMATTER.format(delta)}`, direction: "down" }
+		return { label: `${NUMBER_FORMATTER.format(delta)}`, direction: "down" };
 	}
 
-	return { label: "0", direction: "flat" }
+	return { label: "0", direction: "flat" };
 }
 
 function trendIcon(direction: TrendDirection) {
-	if (direction === "up") return <IconTrendingUp className="size-4" />
-	if (direction === "down") return <IconTrendingDown className="size-4" />
-	return <IconMinus className="size-4" />
+	if (direction === "up") return <IconTrendingUp className="size-4" />;
+	if (direction === "down") return <IconTrendingDown className="size-4" />;
+	return <IconMinus className="size-4" />;
 }
 
 function trendLabel(direction: TrendDirection, entity: string) {
-	if (direction === "up") return `${entity} trending up`
-	if (direction === "down") return `${entity} trending down`
-	return `${entity} holding steady`
+	if (direction === "up") return `${entity} trending up`;
+	if (direction === "down") return `${entity} trending down`;
+	return `${entity} holding steady`;
 }
 
-const loadSummary = cache(() => getDashboardSummary("demo-user"))
+const loadSummary = cache(() => getDashboardSummary("demo-user"));
 
 export async function SectionCards() {
-	const session = await auth.api.getSession({ headers: await headers() })
+	const session = await auth.api.getSession({ headers: await headers() });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
 	return (
@@ -129,16 +129,16 @@ export async function SectionCards() {
 				<AccountsCard />
 			</Suspense>
 		</div>
-	)
+	);
 }
 
 type SummaryCardProps = {
-	title: string
-	value: string
-	change: { label: string; direction: TrendDirection }
-	footerHeadline: string
-	footerSupport: string
-}
+	title: string;
+	value: string;
+	change: { label: string; direction: TrendDirection };
+	footerHeadline: string;
+	footerSupport: string;
+};
 
 function SummaryCard({ title, value, change, footerHeadline, footerSupport }: SummaryCardProps) {
 	return (
@@ -162,7 +162,7 @@ function SummaryCard({ title, value, change, footerHeadline, footerSupport }: Su
 				<div className="text-muted-foreground">{footerSupport}</div>
 			</CardFooter>
 		</Card>
-	)
+	);
 }
 
 function SummaryCardSkeleton({ title }: { title: string }) {
@@ -189,17 +189,17 @@ function SummaryCardSkeleton({ title }: { title: string }) {
 				</div>
 			</CardFooter>
 		</Card>
-	)
+	);
 }
 
 type CardProps = {
-	userId: string
-	currencyId?: string
-}
+	userId: string;
+	currencyId?: string;
+};
 
 async function IncomeCard(props: CardProps) {
-	const summary = await dashboardIncomeSummary(props.userId)
-	const firstEntry = summary?.[0]
+	const summary = await dashboardIncomeSummary(props.userId);
+	const firstEntry = summary?.[0];
 
 	if (!firstEntry) {
 		return (
@@ -210,10 +210,10 @@ async function IncomeCard(props: CardProps) {
 				footerHeadline="Log your first income"
 				footerSupport="Add an income transaction to view trends"
 			/>
-		)
+		);
 	}
-	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(firstEntry.current, firstEntry.previous)
+	const currencyCode = firstEntry.currency?.isoCode ?? "USD";
+	const change = percentChange(firstEntry.current, firstEntry.previous);
 
 	return (
 		<SummaryCard
@@ -223,12 +223,12 @@ async function IncomeCard(props: CardProps) {
 			footerHeadline={trendLabel(change.direction, "Income")}
 			footerSupport="Compared to last month"
 		/>
-	)
+	);
 }
 
 async function ExpensesCard(props: CardProps) {
-	const summary = await dashboardExpensesSummary(props.userId)
-	const firstEntry = summary?.[0]
+	const summary = await dashboardExpensesSummary(props.userId);
+	const firstEntry = summary?.[0];
 
 	if (!firstEntry) {
 		return (
@@ -239,11 +239,11 @@ async function ExpensesCard(props: CardProps) {
 				footerHeadline="Log your first expense"
 				footerSupport="Add an expense transaction to view trends"
 			/>
-		)
+		);
 	}
 
-	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(firstEntry.current, firstEntry.previous)
+	const currencyCode = firstEntry.currency?.isoCode ?? "USD";
+	const change = percentChange(firstEntry.current, firstEntry.previous);
 
 	return (
 		<SummaryCard
@@ -253,12 +253,12 @@ async function ExpensesCard(props: CardProps) {
 			footerHeadline={trendLabel(change.direction, "Expenses")}
 			footerSupport="Compared to last month"
 		/>
-	)
+	);
 }
 
 async function NetCard(props: CardProps) {
-	const summary = await dashboardNetSummary(props.userId)
-	const firstEntry = summary?.[0]
+	const summary = await dashboardNetSummary(props.userId);
+	const firstEntry = summary?.[0];
 
 	if (!firstEntry) {
 		return (
@@ -269,13 +269,13 @@ async function NetCard(props: CardProps) {
 				footerHeadline="Log your first expense"
 				footerSupport="Add an expense transaction to view trends"
 			/>
-		)
+		);
 	}
 
-	const transactionCount = await dashboardCountTransactions(props.userId)
+	const transactionCount = await dashboardCountTransactions(props.userId);
 
-	const currencyCode = firstEntry.currency?.isoCode ?? "USD"
-	const change = percentChange(firstEntry.current, firstEntry.previous)
+	const currencyCode = firstEntry.currency?.isoCode ?? "USD";
+	const change = percentChange(firstEntry.current, firstEntry.previous);
 
 	return (
 		<SummaryCard
@@ -285,13 +285,13 @@ async function NetCard(props: CardProps) {
 			footerHeadline={trendLabel(change.direction, "Cash flow")}
 			footerSupport={`${transactionCount ? transactionCount.counts : "0"} transactions this month`}
 		/>
-	)
+	);
 }
 
 async function AccountsCard() {
-	const summary = await loadSummary()
-	const previousAccounts = Math.max(summary.accounts.total - summary.accounts.newThisMonth, 0)
-	const change = absoluteChange(summary.accounts.total, previousAccounts)
+	const summary = await loadSummary();
+	const previousAccounts = Math.max(summary.accounts.total - summary.accounts.newThisMonth, 0);
+	const change = absoluteChange(summary.accounts.total, previousAccounts);
 
 	return (
 		<SummaryCard
@@ -305,5 +305,5 @@ async function AccountsCard() {
 			}
 			footerSupport="Linked accounts tracked in bzBudget"
 		/>
-	)
+	);
 }

@@ -1,41 +1,41 @@
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm"
-import { db } from "../db"
-import { transactions, currencies, categories } from "../schema"
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { db } from "../db";
+import { transactions, currencies, categories } from "../schema";
 
 export interface TransactionResponse {
-	id: string
-	usersId: string
-	accountsId: string
-	amount: string
-	description: string | null
-	counterparty: string
-	currenciesId: string | null
+	id: string;
+	usersId: string;
+	accountsId: string;
+	amount: string;
+	description: string | null;
+	counterparty: string;
+	currenciesId: string | null;
 	currency: {
-		isoCode: string
-		symbol: string
-		position: "before" | "after"
-	}
-	categoriesId: string | null
+		isoCode: string;
+		symbol: string;
+		position: "before" | "after";
+	};
+	categoriesId: string | null;
 	category: {
-		id: string
-		name: string
-		type: "system" | "user"
-	} | null
-	externalId: string | null
-	bookedAt: Date
-	type: string
-	createdAt: Date | null
-	updatedAt: Date | null
+		id: string;
+		name: string;
+		type: "system" | "user";
+	} | null;
+	externalId: string | null;
+	bookedAt: Date;
+	type: string;
+	createdAt: Date | null;
+	updatedAt: Date | null;
 }
 
 export interface GetTransactionsArgs {
-	usersId: string
-	dateFrom: Date | null
-	dateTo: Date | null
-	limit: number | null
-	offset: number | null
-	sortField: "bookedAt" | "amount" | "counterparty" | "type" | "createdAt" | "updatedAt" | null
-	dir: "asc" | "desc" | null
+	usersId: string;
+	dateFrom: Date | null;
+	dateTo: Date | null;
+	limit: number | null;
+	offset: number | null;
+	sortField: "bookedAt" | "amount" | "counterparty" | "type" | "createdAt" | "updatedAt" | null;
+	dir: "asc" | "desc" | null;
 }
 
 export async function createTransaction(
@@ -78,16 +78,16 @@ export async function createTransaction(
 			type: transactions.type,
 			createdAt: transactions.createdAt,
 			updatedAt: transactions.updatedAt,
-		})
+		});
 
 	if (insertedTransactions.length === 0) {
-		return null
+		return null;
 	}
 
-	const transaction = insertedTransactions[0]
+	const transaction = insertedTransactions[0];
 
 	if (transaction.currenciesId == null) {
-		return null
+		return null;
 	}
 
 	const [currencyResult, categoryResult] = await Promise.all([
@@ -111,13 +111,13 @@ export async function createTransaction(
 					.where(eq(categories.id, transaction.categoriesId))
 					.limit(1)
 			: Promise.resolve([]),
-	])
+	]);
 
 	if (currencyResult.length === 0) {
-		return null
+		return null;
 	}
 
-	const currency = currencyResult[0]
+	const currency = currencyResult[0];
 	const category =
 		categoryResult.length > 0
 			? {
@@ -125,7 +125,7 @@ export async function createTransaction(
 					name: categoryResult[0].name,
 					type: categoryResult[0].type,
 				}
-			: null
+			: null;
 
 	return {
 		id: transaction.id,
@@ -147,49 +147,49 @@ export async function createTransaction(
 		type: transaction.type,
 		createdAt: transaction.createdAt,
 		updatedAt: transaction.updatedAt,
-	}
+	};
 }
 
 export async function getUserTransactions(
 	args: GetTransactionsArgs,
 ): Promise<TransactionResponse[] | null> {
-	const limit = args.limit ?? 10
-	const offset = args.offset ?? 0
-	const dir = args.dir === "asc" ? "asc" : "desc"
+	const limit = args.limit ?? 10;
+	const offset = args.offset ?? 0;
+	const dir = args.dir === "asc" ? "asc" : "desc";
 
-	let orderField = desc(transactions.bookedAt)
+	let orderField = desc(transactions.bookedAt);
 	switch (args.sortField) {
 		case "bookedAt":
-			orderField = dir === "asc" ? asc(transactions.bookedAt) : desc(transactions.bookedAt)
-			break
+			orderField = dir === "asc" ? asc(transactions.bookedAt) : desc(transactions.bookedAt);
+			break;
 		case "amount":
-			orderField = dir === "asc" ? asc(transactions.amount) : desc(transactions.amount)
-			break
+			orderField = dir === "asc" ? asc(transactions.amount) : desc(transactions.amount);
+			break;
 		case "counterparty":
-			orderField = dir === "asc" ? asc(transactions.counterparty) : desc(transactions.counterparty)
-			break
+			orderField = dir === "asc" ? asc(transactions.counterparty) : desc(transactions.counterparty);
+			break;
 		case "type":
-			orderField = dir === "asc" ? asc(transactions.type) : desc(transactions.type)
-			break
+			orderField = dir === "asc" ? asc(transactions.type) : desc(transactions.type);
+			break;
 		case "createdAt":
-			orderField = dir === "asc" ? asc(transactions.createdAt) : desc(transactions.createdAt)
-			break
+			orderField = dir === "asc" ? asc(transactions.createdAt) : desc(transactions.createdAt);
+			break;
 		case "updatedAt":
-			orderField = dir === "asc" ? asc(transactions.updatedAt) : desc(transactions.updatedAt)
-			break
+			orderField = dir === "asc" ? asc(transactions.updatedAt) : desc(transactions.updatedAt);
+			break;
 		default:
-			orderField = desc(transactions.bookedAt)
+			orderField = desc(transactions.bookedAt);
 	}
 
-	const filters = [eq(transactions.usersId, args.usersId)]
+	const filters = [eq(transactions.usersId, args.usersId)];
 	if (args.dateFrom) {
-		filters.push(gte(transactions.bookedAt, args.dateFrom))
+		filters.push(gte(transactions.bookedAt, args.dateFrom));
 	}
 	if (args.dateTo) {
-		filters.push(lte(transactions.bookedAt, args.dateTo))
+		filters.push(lte(transactions.bookedAt, args.dateTo));
 	}
 
-	const whereClause = filters.length === 1 ? filters[0] : and(...filters)
+	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 
 	const userTransactions = await db
 		.select({
@@ -219,7 +219,7 @@ export async function getUserTransactions(
 		.where(whereClause)
 		.orderBy(orderField)
 		.limit(limit)
-		.offset(offset)
+		.offset(offset);
 
 	return userTransactions.length > 0
 		? userTransactions.map((transaction) => ({
@@ -249,5 +249,5 @@ export async function getUserTransactions(
 				createdAt: transaction.createdAt,
 				updatedAt: transaction.updatedAt,
 			}))
-		: null
+		: null;
 }

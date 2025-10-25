@@ -1,54 +1,54 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { ChevronDown, UserRound } from "lucide-react"
-import { SignOutButton } from "./sign-out-button"
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronDown, UserRound } from "lucide-react";
+import { SignOutButton } from "./sign-out-button";
 
 type UserMenuProps = {
-	name: string
-	email?: string | null
-	image?: string | null
-}
+	name: string;
+	email?: string | null;
+	image?: string | null;
+};
 
 function initialsFromName(name: string) {
-	const trimmed = name?.trim() ?? ""
-	if (!trimmed) return "B"
+	const trimmed = name?.trim() ?? "";
+	if (!trimmed) return "B";
 
 	const parts = trimmed
 		.split(" ")
 		.map((part) => part.trim())
-		.filter((part) => part.length > 0)
+		.filter((part) => part.length > 0);
 
-	if (parts.length === 0) return "B"
-	if (parts.length === 1) return parts[0]!.charAt(0)?.toUpperCase() || "B"
+	if (parts.length === 0) return "B";
+	if (parts.length === 1) return parts[0]!.charAt(0)?.toUpperCase() || "B";
 
-	const first = parts[0]?.charAt(0)?.toUpperCase() ?? ""
-	const last = parts[parts.length - 1]?.charAt(0)?.toUpperCase() ?? ""
-	return first + last || "B"
+	const first = parts[0]?.charAt(0)?.toUpperCase() ?? "";
+	const last = parts[parts.length - 1]?.charAt(0)?.toUpperCase() ?? "";
+	return first + last || "B";
 }
 
 function UserAvatar({ name, image }: { name: string; image?: string | null }) {
-	const initials = initialsFromName(name)
+	const initials = initialsFromName(name);
 
 	if (image) {
 		return (
 			<div className="relative h-12 w-12 overflow-hidden rounded-full border border-emerald-100">
 				<Image src={image} alt={`${name}'s avatar`} fill sizes="48px" className="object-cover" />
 			</div>
-		)
+		);
 	}
 
 	return (
 		<div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
 			{initials || <UserRound className="h-5 w-5" />}
 		</div>
-	)
+	);
 }
 
 export function UserMenu({ name, email, image }: UserMenuProps) {
-	const [open, setOpen] = useState(false)
+	const [open, setOpen] = useState(false);
 
 	return (
 		<div
@@ -58,7 +58,7 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 			onFocus={() => setOpen(true)}
 			onBlur={(event) => {
 				if (!event.currentTarget.contains(event.relatedTarget)) {
-					setOpen(false)
+					setOpen(false);
 				}
 			}}
 		>
@@ -124,5 +124,5 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

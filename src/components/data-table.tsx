@@ -1,13 +1,13 @@
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { getUserTransactions } from "@/db/queries/transactions"
-import { Skeleton } from "@/components/ui/skeleton"
-import { auth } from "@/lib/auth"
+import { getUserTransactions } from "@/db/queries/transactions";
+import { Skeleton } from "@/components/ui/skeleton";
+import { auth } from "@/lib/auth";
 
-import { TransactionsTableClient } from "./data-table-client"
+import { TransactionsTableClient } from "./data-table-client";
 
-const DEFAULT_FETCH_LIMIT = 200
+const DEFAULT_FETCH_LIMIT = 200;
 
 async function loadTransactions(userId: string) {
 	const transactions = await getUserTransactions({
@@ -18,21 +18,21 @@ async function loadTransactions(userId: string) {
 		offset: 0,
 		sortField: "bookedAt",
 		dir: "desc",
-	})
+	});
 
-	return transactions ?? []
+	return transactions ?? [];
 }
 
 export async function DataTable() {
-	const requestHeaders = await headers()
-	const session = await auth.api.getSession({ headers: requestHeaders })
+	const requestHeaders = await headers();
+	const session = await auth.api.getSession({ headers: requestHeaders });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
-	const transactions = await loadTransactions(session.user.id)
-	return <TransactionsTableClient data={transactions} />
+	const transactions = await loadTransactions(session.user.id);
+	return <TransactionsTableClient data={transactions} />;
 }
 
 export function DataTableSkeleton() {
@@ -73,5 +73,5 @@ export function DataTableSkeleton() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

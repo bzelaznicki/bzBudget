@@ -1,12 +1,12 @@
-import { Suspense, type CSSProperties } from "react"
+import { Suspense, type CSSProperties } from "react";
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable, DataTableSkeleton } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { TransactionEventsProvider } from "@/contexts/transaction-events-context"
+import { AppSidebar } from "@/components/app-sidebar";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TransactionEventsProvider } from "@/contexts/transaction-events-context";
 
 export default function Page() {
 	return (
@@ -40,5 +40,5 @@ export default function Page() {
 				</SidebarInset>
 			</TransactionEventsProvider>
 		</SidebarProvider>
-	)
+	);
 }

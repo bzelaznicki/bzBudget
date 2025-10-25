@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import { type ReactNode, useState, useCallback } from "react"
+import { type ReactNode, useState, useCallback } from "react";
 
-import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react"
+import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react";
 
-import { TransactionDialog } from "@/components/transaction-dialog"
-import type { TransactionResponse } from "@/db/queries/transactions"
-import { Button } from "@/components/ui/button"
+import { TransactionDialog } from "@/components/transaction-dialog";
+import type { TransactionResponse } from "@/db/queries/transactions";
+import { Button } from "@/components/ui/button";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { useTransactionEvents } from "@/contexts/transaction-events-context"
+} from "@/components/ui/sidebar";
+import { useTransactionEvents } from "@/contexts/transaction-events-context";
 
 export function NavMain({
 	items,
 }: {
 	items: {
-		title: string
-		url: string
-		icon?: ReactNode
-	}[]
+		title: string;
+		url: string;
+		icon?: ReactNode;
+	}[];
 }) {
-	const [transactionOpen, setTransactionOpen] = useState(false)
-	const { emitTransactionCreated } = useTransactionEvents()
+	const [transactionOpen, setTransactionOpen] = useState(false);
+	const { emitTransactionCreated } = useTransactionEvents();
 
 	const onTransactionCreated = useCallback(
 		(transaction: TransactionResponse) => {
-			emitTransactionCreated(transaction)
+			emitTransactionCreated(transaction);
 		},
 		[emitTransactionCreated],
-	)
+	);
 
 	return (
 		<SidebarGroup>
@@ -75,5 +75,5 @@ export function NavMain({
 				</SidebarMenu>
 			</SidebarGroupContent>
 		</SidebarGroup>
-	)
+	);
 }

@@ -1,73 +1,73 @@
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { getUserBankAccounts } from "@/db/queries/accounts"
-import { createBankAccount } from "@/db/queries/accounts"
-import { listCurrencies } from "@/db/queries/currencies"
-import type { BankAccountResponse } from "@/db/queries/accounts"
-import type { CurrencyResponse } from "@/db/queries/currencies"
-import { CurrencyPicker } from "./currency-picker"
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { getUserBankAccounts } from "@/db/queries/accounts";
+import { createBankAccount } from "@/db/queries/accounts";
+import { listCurrencies } from "@/db/queries/currencies";
+import type { BankAccountResponse } from "@/db/queries/accounts";
+import type { CurrencyResponse } from "@/db/queries/currencies";
+import { CurrencyPicker } from "./currency-picker";
 
 function formatDateTime(value: Date | string | null | undefined) {
-	if (!value) return "Unknown"
-	const date = value instanceof Date ? value : new Date(value)
-	if (Number.isNaN(date.getTime())) return "Unknown"
+	if (!value) return "Unknown";
+	const date = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(date.getTime())) return "Unknown";
 	return date.toLocaleDateString(undefined, {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
-	})
+	});
 }
 
 async function createAccountAction(formData: FormData) {
-	"use server"
+	"use server";
 
-	const session = await auth.api.getSession({ headers: await headers() })
+	const session = await auth.api.getSession({ headers: await headers() });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
-	const name = formData.get("name")
-	const currencyId = formData.get("currencyId")
-	const iban = formData.get("iban")
+	const name = formData.get("name");
+	const currencyId = formData.get("currencyId");
+	const iban = formData.get("iban");
 
-	const safeName = typeof name === "string" ? name.trim() : ""
-	const safeCurrencyId = typeof currencyId === "string" ? currencyId.trim() : ""
-	const safeIban = typeof iban === "string" && iban.trim().length > 0 ? iban.trim() : undefined
+	const safeName = typeof name === "string" ? name.trim() : "";
+	const safeCurrencyId = typeof currencyId === "string" ? currencyId.trim() : "";
+	const safeIban = typeof iban === "string" && iban.trim().length > 0 ? iban.trim() : undefined;
 
 	if (!safeName || !safeCurrencyId) {
-		revalidatePath("/settings/accounts")
-		return
+		revalidatePath("/settings/accounts");
+		return;
 	}
 
-	await createBankAccount(session.user.id, safeName, safeCurrencyId, safeIban)
-	revalidatePath("/settings/accounts")
+	await createBankAccount(session.user.id, safeName, safeCurrencyId, safeIban);
+	revalidatePath("/settings/accounts");
 }
 
 export default async function AccountsPage() {
-	const session = await auth.api.getSession({ headers: await headers() })
+	const session = await auth.api.getSession({ headers: await headers() });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
 	const [accounts, currencies] = await Promise.all([
 		getUserBankAccounts(session.user.id, 50, 0),
 		listCurrencies(),
-	])
+	]);
 
-	const accountsList: BankAccountResponse[] = accounts ?? []
-	const currencyLookup = new Map<string, CurrencyResponse>()
+	const accountsList: BankAccountResponse[] = accounts ?? [];
+	const currencyLookup = new Map<string, CurrencyResponse>();
 	currencies.forEach((currency) => {
-		currencyLookup.set(currency.id, currency)
-	})
+		currencyLookup.set(currency.id, currency);
+	});
 
 	return (
 		<div className="min-h-screen bg-gray-50 px-6 py-10">
@@ -106,7 +106,7 @@ export default async function AccountsPage() {
 									</div>
 								) : (
 									accountsList.map((account) => {
-										const currency = currencyLookup.get(account.currenciesId)
+										const currency = currencyLookup.get(account.currenciesId);
 										return (
 											<div
 												key={account.id}
@@ -125,7 +125,7 @@ export default async function AccountsPage() {
 													<p>Created {formatDateTime(account.createdAt)}</p>
 												</div>
 											</div>
-										)
+										);
 									})
 								)}
 							</CardContent>
@@ -172,5 +172,5 @@ export default async function AccountsPage() {
 				</main>
 			</div>
 		</div>
-	)
+	);
 }

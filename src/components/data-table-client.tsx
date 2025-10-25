@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
 	type Column,
 	ColumnDef,
@@ -10,7 +10,7 @@ import {
 	getPaginationRowModel,
 	getSortedRowModel,
 	useReactTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import {
 	IconArrowsSort,
 	IconChevronDown,
@@ -19,19 +19,19 @@ import {
 	IconChevronUp,
 	IconChevronsLeft,
 	IconChevronsRight,
-} from "@tabler/icons-react"
+} from "@tabler/icons-react";
 
-import type { TransactionResponse } from "@/db/queries/transactions"
-import { AddTransactionDialog } from "@/components/add-transaction-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import type { TransactionResponse } from "@/db/queries/transactions";
+import { AddTransactionDialog } from "@/components/add-transaction-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
 	Table,
 	TableBody,
@@ -39,20 +39,20 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@/components/ui/table"
-import { useTransactionEvents } from "@/contexts/transaction-events-context"
+} from "@/components/ui/table";
+import { useTransactionEvents } from "@/contexts/transaction-events-context";
 
 type TransactionRow = TransactionResponse & {
-	amountNumber: number
-	bookedAtDate: Date | null
-	createdAtDate: Date | null
-	updatedAtDate: Date | null
-}
+	amountNumber: number;
+	bookedAtDate: Date | null;
+	createdAtDate: Date | null;
+	updatedAtDate: Date | null;
+};
 
-const PAGE_SIZE_OPTIONS = ["10", "20", "50"]
-const ALL_OPTION = "all"
-const UNCATEGORIZED_OPTION = "uncategorized"
-const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB")
+const PAGE_SIZE_OPTIONS = ["10", "20", "50"];
+const ALL_OPTION = "all";
+const UNCATEGORIZED_OPTION = "uncategorized";
+const NUMBER_FORMATTER = new Intl.NumberFormat("en-GB");
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	year: "numeric",
 	month: "short",
@@ -60,7 +60,7 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	hour: "2-digit",
 	minute: "2-digit",
 	hour12: true,
-})
+});
 
 const columns: ColumnDef<TransactionRow>[] = [
 	{
@@ -137,26 +137,26 @@ const columns: ColumnDef<TransactionRow>[] = [
 		header: ({ column }) => <SortableHeader column={column} label="Updated" />,
 		cell: ({ row }) => formatDateTime(row.original.updatedAtDate),
 	},
-]
+];
 
 export function TransactionsTableClient({ data }: { data: TransactionResponse[] }) {
-	const [transactions, setTransactions] = React.useState<TransactionResponse[]>(data)
+	const [transactions, setTransactions] = React.useState<TransactionResponse[]>(data);
 
 	React.useEffect(() => {
-		setTransactions(data)
-	}, [data])
+		setTransactions(data);
+	}, [data]);
 
-	const { subscribeTransactionCreated, emitTransactionCreated } = useTransactionEvents()
+	const { subscribeTransactionCreated, emitTransactionCreated } = useTransactionEvents();
 
 	React.useEffect(() => {
 		return subscribeTransactionCreated((transaction) => {
-			setTransactions((prev) => [transaction, ...prev])
+			setTransactions((prev) => [transaction, ...prev]);
 			setPagination((prev) => ({
 				...prev,
 				pageIndex: 0,
-			}))
-		})
-	}, [subscribeTransactionCreated])
+			}));
+		});
+	}, [subscribeTransactionCreated]);
 
 	const preparedData = React.useMemo<TransactionRow[]>(() => {
 		return transactions.map((transaction) => ({
@@ -165,39 +165,39 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 			bookedAtDate: toDate(transaction.bookedAt),
 			createdAtDate: toDate(transaction.createdAt),
 			updatedAtDate: toDate(transaction.updatedAt),
-		}))
-	}, [transactions])
+		}));
+	}, [transactions]);
 
-	const [selectedCurrency, setSelectedCurrency] = React.useState<string>(ALL_OPTION)
-	const [selectedCategory, setSelectedCategory] = React.useState<string>(ALL_OPTION)
-	const [sorting, setSorting] = React.useState<SortingState>([{ id: "bookedAt", desc: true }])
+	const [selectedCurrency, setSelectedCurrency] = React.useState<string>(ALL_OPTION);
+	const [selectedCategory, setSelectedCategory] = React.useState<string>(ALL_OPTION);
+	const [sorting, setSorting] = React.useState<SortingState>([{ id: "bookedAt", desc: true }]);
 	const [{ pageIndex, pageSize }, setPagination] = React.useState({
 		pageIndex: 0,
 		pageSize: Number(PAGE_SIZE_OPTIONS[0]),
-	})
+	});
 
 	const handleTransactionCreated = React.useCallback(
 		(transaction: TransactionResponse) => {
-			emitTransactionCreated(transaction)
+			emitTransactionCreated(transaction);
 		},
 		[emitTransactionCreated],
-	)
+	);
 
 	const currencyOptions = React.useMemo(() => {
-		const uniqueCurrencies = new Map<string, TransactionRow["currency"]>()
+		const uniqueCurrencies = new Map<string, TransactionRow["currency"]>();
 		for (const transaction of preparedData) {
 			if (!uniqueCurrencies.has(transaction.currency.isoCode)) {
-				uniqueCurrencies.set(transaction.currency.isoCode, transaction.currency)
+				uniqueCurrencies.set(transaction.currency.isoCode, transaction.currency);
 			}
 		}
-		return Array.from(uniqueCurrencies.values())
-	}, [preparedData])
+		return Array.from(uniqueCurrencies.values());
+	}, [preparedData]);
 
 	const categoryOptions = React.useMemo(() => {
 		const uniqueCategories = new Map<
 			string,
 			{ id: string; name: string; isUncategorized: boolean }
-		>()
+		>();
 		for (const transaction of preparedData) {
 			if (transaction.category) {
 				if (!uniqueCategories.has(transaction.category.id)) {
@@ -205,45 +205,45 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 						id: transaction.category.id,
 						name: transaction.category.name,
 						isUncategorized: false,
-					})
+					});
 				}
 			} else if (!uniqueCategories.has(UNCATEGORIZED_OPTION)) {
 				uniqueCategories.set(UNCATEGORIZED_OPTION, {
 					id: UNCATEGORIZED_OPTION,
 					name: "Uncategorized",
 					isUncategorized: true,
-				})
+				});
 			}
 		}
-		return Array.from(uniqueCategories.values())
-	}, [preparedData])
+		return Array.from(uniqueCategories.values());
+	}, [preparedData]);
 
 	React.useEffect(() => {
 		setPagination((prev) => {
 			if (prev.pageIndex === 0) {
-				return prev
+				return prev;
 			}
 			return {
 				...prev,
 				pageIndex: 0,
-			}
-		})
-	}, [selectedCurrency, selectedCategory])
+			};
+		});
+	}, [selectedCurrency, selectedCategory]);
 
 	const filteredData = React.useMemo(() => {
 		return preparedData.filter((transaction) => {
 			const matchesCurrency =
-				selectedCurrency === ALL_OPTION || transaction.currency.isoCode === selectedCurrency
+				selectedCurrency === ALL_OPTION || transaction.currency.isoCode === selectedCurrency;
 
 			const matchesCategory =
 				selectedCategory === ALL_OPTION ||
 				(selectedCategory === UNCATEGORIZED_OPTION
 					? !transaction.category
-					: transaction.category?.id === selectedCategory)
+					: transaction.category?.id === selectedCategory);
 
-			return matchesCurrency && matchesCategory
-		})
-	}, [preparedData, selectedCurrency, selectedCategory])
+			return matchesCurrency && matchesCategory;
+		});
+	}, [preparedData, selectedCurrency, selectedCategory]);
 
 	const table = useReactTable({
 		data: filteredData,
@@ -263,13 +263,13 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 				pageSize: Number(PAGE_SIZE_OPTIONS[0]),
 			},
 		},
-	})
+	});
 
-	const totalRecords = preparedData.length
-	const totalRows = table.getPrePaginationRowModel().rows.length
-	const displayFrom = totalRows === 0 ? 0 : pageIndex * pageSize + 1
-	const displayTo = Math.min(totalRows, (pageIndex + 1) * pageSize)
-	const currentPage = table.getPageCount() === 0 ? 0 : pageIndex + 1
+	const totalRecords = preparedData.length;
+	const totalRows = table.getPrePaginationRowModel().rows.length;
+	const displayFrom = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+	const displayTo = Math.min(totalRows, (pageIndex + 1) * pageSize);
+	const currentPage = table.getPageCount() === 0 ? 0 : pageIndex + 1;
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -436,7 +436,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function SortableHeader({
@@ -444,12 +444,12 @@ function SortableHeader({
 	label,
 	align = "left",
 }: {
-	column: Column<TransactionRow, unknown>
-	label: string
-	align?: "left" | "right"
+	column: Column<TransactionRow, unknown>;
+	label: string;
+	align?: "left" | "right";
 }) {
-	const sorted = column.getIsSorted()
-	const alignmentClasses = align === "right" ? "ml-auto -mr-2 justify-end" : "-ml-3 justify-start"
+	const sorted = column.getIsSorted();
+	const alignmentClasses = align === "right" ? "ml-auto -mr-2 justify-end" : "-ml-3 justify-start";
 
 	return (
 		<Button
@@ -469,56 +469,56 @@ function SortableHeader({
 				)}
 			</span>
 		</Button>
-	)
+	);
 }
 
 function toDate(value: Date | string | null): Date | null {
-	if (!value) return null
+	if (!value) return null;
 	if (value instanceof Date) {
-		return Number.isNaN(value.getTime()) ? null : value
+		return Number.isNaN(value.getTime()) ? null : value;
 	}
-	const date = new Date(value)
-	return Number.isNaN(date.getTime()) ? null : date
+	const date = new Date(value);
+	return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function parseAmount(amount: string | null): number {
-	if (!amount) return 0
-	const parsed = Number(amount)
-	return Number.isFinite(parsed) ? parsed : 0
+	if (!amount) return 0;
+	const parsed = Number(amount);
+	return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function formatAmount(amount: number, currency: TransactionResponse["currency"]) {
-	if (!Number.isFinite(amount) || !currency) return "—"
+	if (!Number.isFinite(amount) || !currency) return "—";
 
 	try {
 		const formatter = new Intl.NumberFormat("en-GB", {
 			style: "currency",
 			currency: currency.isoCode ?? "USD",
-		})
-		return formatter.format(amount)
+		});
+		return formatter.format(amount);
 	} catch {
-		const fallbackSymbol = currency.symbol ?? currency.isoCode
+		const fallbackSymbol = currency.symbol ?? currency.isoCode;
 		const formatted = amount.toLocaleString("en-GB", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
-		})
+		});
 		return currency.position === "before"
 			? `${fallbackSymbol}${formatted}`
-			: `${formatted}${fallbackSymbol}`
+			: `${formatted}${fallbackSymbol}`;
 	}
 }
 
 function CurrencyBadge({ symbol, isoCode }: { symbol: string | null; isoCode: string }) {
-	const displaySymbol = symbol ?? isoCode
+	const displaySymbol = symbol ?? isoCode;
 	return (
 		<Badge variant="outline" className="gap-1">
 			<span>{displaySymbol}</span>
 			<span className="text-muted-foreground text-xs uppercase">{isoCode}</span>
 		</Badge>
-	)
+	);
 }
 
 function formatDateTime(date: Date | null) {
-	if (!date) return "—"
-	return DATE_TIME_FORMATTER.format(date)
+	if (!date) return "—";
+	return DATE_TIME_FORMATTER.format(date);
 }

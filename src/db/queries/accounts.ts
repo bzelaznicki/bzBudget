@@ -1,15 +1,15 @@
-import { bankAccounts } from "../schema"
-import { db } from "../db"
-import { eq } from "drizzle-orm"
+import { bankAccounts } from "../schema";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
 
 export interface BankAccountResponse {
-	id: string
-	usersId: string
-	name: string
-	iban: string | null
-	currenciesId: string
-	createdAt: Date | null
-	updatedAt: Date | null
+	id: string;
+	usersId: string;
+	name: string;
+	iban: string | null;
+	currenciesId: string;
+	createdAt: Date | null;
+	updatedAt: Date | null;
 }
 
 export async function createBankAccount(
@@ -26,9 +26,9 @@ export async function createBankAccount(
 			iban,
 			currenciesId,
 		})
-		.returning()
+		.returning();
 
-	return bankAccount.length > 0 ? bankAccount[0] : null
+	return bankAccount.length > 0 ? bankAccount[0] : null;
 }
 
 export async function getUserBankAccounts(
@@ -36,15 +36,15 @@ export async function getUserBankAccounts(
 	limit?: number,
 	offset?: number,
 ): Promise<BankAccountResponse[] | null> {
-	if (!limit) limit = 10
-	if (!offset) offset = 0
+	if (!limit) limit = 10;
+	if (!offset) offset = 0;
 
 	const accounts = await db
 		.select()
 		.from(bankAccounts)
 		.where(eq(bankAccounts.usersId, usersId))
 		.limit(limit)
-		.offset(offset)
+		.offset(offset);
 
-	return accounts.length > 0 ? accounts : null
+	return accounts.length > 0 ? accounts : null;
 }

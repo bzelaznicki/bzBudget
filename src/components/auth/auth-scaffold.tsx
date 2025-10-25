@@ -1,17 +1,17 @@
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react";
 
 interface Benefit {
-	title: string
-	description: string
+	title: string;
+	description: string;
 }
 
 interface AuthScaffoldProps {
-	highlight: string
-	title: string
-	description: string
-	benefits: Benefit[]
-	children: React.ReactNode
-	footer?: React.ReactNode
+	highlight: string;
+	title: string;
+	description: string;
+	benefits: Benefit[];
+	children: React.ReactNode;
+	footer?: React.ReactNode;
 }
 
 export function AuthScaffold({
@@ -53,5 +53,5 @@ export function AuthScaffold({
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

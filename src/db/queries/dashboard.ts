@@ -1,25 +1,25 @@
-import { db } from "../db"
-import { transactions, currencies } from "../schema"
-import { sql, and, gte, lt, eq, sum, count } from "drizzle-orm"
+import { db } from "../db";
+import { transactions, currencies } from "../schema";
+import { sql, and, gte, lt, eq, sum, count } from "drizzle-orm";
 
 export type DashboardResponse = {
-	current: number
-	previous: number
+	current: number;
+	previous: number;
 
 	currency: {
-		isoCode: string
-		symbol: string
-		position: "before" | "after" | null
-	}
-}
+		isoCode: string;
+		symbol: string;
+		position: "before" | "after" | null;
+	};
+};
 
 export async function dashboardIncomeSummary(userId: string): Promise<DashboardResponse[] | null> {
 	if (!userId) {
-		return null
+		return null;
 	}
-	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`
-	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`
-	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`
+	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
 
 	const currentRows = await db
 		.select({
@@ -38,7 +38,7 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 				eq(transactions.type, "incoming"),
 			),
 		)
-		.groupBy(currencies.id)
+		.groupBy(currencies.id);
 
 	const previousRows = await db
 		.select({
@@ -57,12 +57,12 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 				eq(transactions.type, "incoming"),
 			),
 		)
-		.groupBy(currencies.id)
+		.groupBy(currencies.id);
 
-	const currencyTotals = new Map<string, DashboardResponse>()
+	const currencyTotals = new Map<string, DashboardResponse>();
 
 	for (const row of currentRows) {
-		const current = Number(row.total ?? 0)
+		const current = Number(row.total ?? 0);
 		currencyTotals.set(row.isoCode, {
 			current,
 			previous: 0,
@@ -71,15 +71,15 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 				symbol: row.symbol,
 				position: row.position,
 			},
-		})
+		});
 	}
 
 	for (const row of previousRows) {
-		const previous = Number(row.total ?? 0)
-		const existing = currencyTotals.get(row.isoCode)
+		const previous = Number(row.total ?? 0);
+		const existing = currencyTotals.get(row.isoCode);
 
 		if (existing) {
-			existing.previous = previous
+			existing.previous = previous;
 		} else {
 			currencyTotals.set(row.isoCode, {
 				current: 0,
@@ -89,22 +89,22 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 					symbol: row.symbol,
 					position: row.position,
 				},
-			})
+			});
 		}
 	}
 
-	return Array.from(currencyTotals.values()) ?? null
+	return Array.from(currencyTotals.values()) ?? null;
 }
 
 export async function dashboardExpensesSummary(
 	userId: string,
 ): Promise<DashboardResponse[] | null> {
 	if (!userId) {
-		return null
+		return null;
 	}
-	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`
-	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`
-	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`
+	const startOfPreviousMonth = sql`date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'`;
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
 
 	const currentRows = await db
 		.select({
@@ -123,7 +123,7 @@ export async function dashboardExpensesSummary(
 				eq(transactions.type, "outgoing"),
 			),
 		)
-		.groupBy(currencies.id)
+		.groupBy(currencies.id);
 
 	const previousRows = await db
 		.select({
@@ -142,12 +142,12 @@ export async function dashboardExpensesSummary(
 				eq(transactions.type, "outgoing"),
 			),
 		)
-		.groupBy(currencies.id)
+		.groupBy(currencies.id);
 
-	const currencyTotals = new Map<string, DashboardResponse>()
+	const currencyTotals = new Map<string, DashboardResponse>();
 
 	for (const row of currentRows) {
-		const current = Number(row.total ?? 0)
+		const current = Number(row.total ?? 0);
 		currencyTotals.set(row.isoCode, {
 			current,
 			previous: 0,
@@ -156,15 +156,15 @@ export async function dashboardExpensesSummary(
 				symbol: row.symbol,
 				position: row.position,
 			},
-		})
+		});
 	}
 
 	for (const row of previousRows) {
-		const previous = Number(row.total ?? 0)
-		const existing = currencyTotals.get(row.isoCode)
+		const previous = Number(row.total ?? 0);
+		const existing = currencyTotals.get(row.isoCode);
 
 		if (existing) {
-			existing.previous = previous
+			existing.previous = previous;
 		} else {
 			currencyTotals.set(row.isoCode, {
 				current: 0,
@@ -174,67 +174,67 @@ export async function dashboardExpensesSummary(
 					symbol: row.symbol,
 					position: row.position,
 				},
-			})
+			});
 		}
 	}
 
-	return Array.from(currencyTotals.values()) ?? null
+	return Array.from(currencyTotals.values()) ?? null;
 }
 
 export async function dashboardNetSummary(userId: string): Promise<DashboardResponse[] | null> {
 	if (!userId) {
-		return null
+		return null;
 	}
 	const [income, expenses] = await Promise.all([
 		dashboardIncomeSummary(userId),
 		dashboardExpensesSummary(userId),
-	])
+	]);
 
-	const netByCurrency = new Map<string, DashboardResponse>()
+	const netByCurrency = new Map<string, DashboardResponse>();
 
 	for (const incomeRow of income ?? []) {
-		const isoCode = incomeRow.currency?.isoCode
+		const isoCode = incomeRow.currency?.isoCode;
 		if (!isoCode) {
-			continue
+			continue;
 		}
 
 		netByCurrency.set(isoCode, {
 			current: incomeRow.current,
 			previous: incomeRow.previous,
 			currency: incomeRow.currency,
-		})
+		});
 	}
 
 	for (const expenseRow of expenses ?? []) {
-		const isoCode = expenseRow.currency?.isoCode
+		const isoCode = expenseRow.currency?.isoCode;
 		if (!isoCode) {
-			continue
+			continue;
 		}
 
-		const existing = netByCurrency.get(isoCode)
+		const existing = netByCurrency.get(isoCode);
 
 		if (existing) {
-			existing.current -= expenseRow.current
-			existing.previous -= expenseRow.previous
+			existing.current -= expenseRow.current;
+			existing.previous -= expenseRow.previous;
 		} else {
 			netByCurrency.set(isoCode, {
 				current: -expenseRow.current,
 				previous: -expenseRow.previous,
 				currency: expenseRow.currency,
-			})
+			});
 		}
 	}
 
-	return Array.from(netByCurrency.values()) ?? null
+	return Array.from(netByCurrency.values()) ?? null;
 }
 
 export async function dashboardCountTransactions(userId: string) {
 	if (!userId) {
-		return null
+		return null;
 	}
 
-	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`
-	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`
+	const startOfCurrentMonth = sql`date_trunc('month', CURRENT_DATE)`;
+	const startOfNextMonth = sql`date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'`;
 
 	const data = await db
 		.select({
@@ -247,38 +247,38 @@ export async function dashboardCountTransactions(userId: string) {
 				lt(transactions.bookedAt, startOfNextMonth),
 				eq(transactions.usersId, userId),
 			),
-		)
+		);
 
-	return data[0]
+	return data[0];
 }
 
 export type DashboardSummary = {
 	income: {
-		current: number
-		previous: number
-	}
+		current: number;
+		previous: number;
+	};
 	expenses: {
-		current: number
-		previous: number
-	}
+		current: number;
+		previous: number;
+	};
 	net: {
-		current: number
-		previous: number
-	}
+		current: number;
+		previous: number;
+	};
 	transactions: {
-		current: number
-		previous: number
-	}
+		current: number;
+		previous: number;
+	};
 	accounts: {
-		total: number
-		newThisMonth: number
-	}
+		total: number;
+		newThisMonth: number;
+	};
 	currency: {
-		isoCode: string
-		symbol: string
-		position: "before" | "after"
-	}
-}
+		isoCode: string;
+		symbol: string;
+		position: "before" | "after";
+	};
+};
 
 const fallbackSummary: DashboardSummary = {
 	income: { current: 12450.32, previous: 11210.45 },
@@ -287,11 +287,11 @@ const fallbackSummary: DashboardSummary = {
 	transactions: { current: 182, previous: 165 },
 	accounts: { total: 6, newThisMonth: 2 },
 	currency: { isoCode: "USD", symbol: "$", position: "before" },
-}
+};
 
 export async function getDashboardSummary(_userId: string): Promise<DashboardSummary> {
 	// Simulate the shape of a future asynchronous call while real data hooks
 	// are being implemented.
-	await new Promise((resolve) => setTimeout(resolve, 25))
-	return fallbackSummary
+	await new Promise((resolve) => setTimeout(resolve, 25));
+	return fallbackSummary;
 }

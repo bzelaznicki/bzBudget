@@ -1,11 +1,11 @@
-import { users } from "../schema"
-import { db } from "../db"
+import { users } from "../schema";
+import { db } from "../db";
 
 export interface UserResponse {
-	id: string
-	firstName: string | null
-	lastName: string | null
-	email: string
-	createdAt: Date
-	updatedAt: Date
+	id: string;
+	firstName: string | null;
+	lastName: string | null;
+	email: string;
+	createdAt: Date;
+	updatedAt: Date;
 }

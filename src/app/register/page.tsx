@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -8,40 +8,40 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import Image from "next/image"
-import { Loader2, X } from "lucide-react"
-import { signUp } from "@/lib/auth-client"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { AuthScaffold } from "@/components/auth/auth-scaffold"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import Image from "next/image";
+import { Loader2, X } from "lucide-react";
+import { signUp } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { AuthScaffold } from "@/components/auth/auth-scaffold";
 
 export default function SignUp() {
-	const [firstName, setFirstName] = useState("")
-	const [lastName, setLastName] = useState("")
-	const [email, setEmail] = useState("")
-	const [password, setPassword] = useState("")
-	const [passwordConfirmation, setPasswordConfirmation] = useState("")
-	const [image, setImage] = useState<File | null>(null)
-	const [imagePreview, setImagePreview] = useState<string | null>(null)
-	const router = useRouter()
-	const [loading, setLoading] = useState(false)
+	const [firstName, setFirstName] = useState("");
+	const [lastName, setLastName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [passwordConfirmation, setPasswordConfirmation] = useState("");
+	const [image, setImage] = useState<File | null>(null);
+	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const router = useRouter();
+	const [loading, setLoading] = useState(false);
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0]
+		const file = e.target.files?.[0];
 		if (file) {
-			setImage(file)
-			const reader = new FileReader()
+			setImage(file);
+			const reader = new FileReader();
 			reader.onloadend = () => {
-				setImagePreview(reader.result as string)
-			}
-			reader.readAsDataURL(file)
+				setImagePreview(reader.result as string);
+			};
+			reader.readAsDataURL(file);
 		}
-	}
+	};
 
 	return (
 		<AuthScaffold
@@ -81,7 +81,7 @@ export default function SignUp() {
 									placeholder="Max"
 									required
 									onChange={(e) => {
-										setFirstName(e.target.value)
+										setFirstName(e.target.value);
 									}}
 									value={firstName}
 								/>
@@ -93,7 +93,7 @@ export default function SignUp() {
 									placeholder="Robinson"
 									required
 									onChange={(e) => {
-										setLastName(e.target.value)
+										setLastName(e.target.value);
 									}}
 									value={lastName}
 								/>
@@ -107,7 +107,7 @@ export default function SignUp() {
 								placeholder="m@example.com"
 								required
 								onChange={(e) => {
-									setEmail(e.target.value)
+									setEmail(e.target.value);
 								}}
 								value={email}
 							/>
@@ -163,8 +163,8 @@ export default function SignUp() {
 											type="button"
 											className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
 											onClick={() => {
-												setImage(null)
-												setImagePreview(null)
+												setImage(null);
+												setImagePreview(null);
 											}}
 										>
 											<X className="h-4 w-4" />
@@ -187,19 +187,19 @@ export default function SignUp() {
 									callbackURL: "/dashboard",
 									fetchOptions: {
 										onResponse: () => {
-											setLoading(false)
+											setLoading(false);
 										},
 										onRequest: () => {
-											setLoading(true)
+											setLoading(true);
 										},
 										onError: (ctx) => {
-											toast.error(ctx.error.message)
+											toast.error(ctx.error.message);
 										},
 										onSuccess: async () => {
-											router.push("/dashboard")
+											router.push("/dashboard");
 										},
 									},
-								})
+								});
 							}}
 						>
 							{loading ? <Loader2 size={16} className="animate-spin" /> : "Create account"}
@@ -219,14 +219,14 @@ export default function SignUp() {
 				</CardFooter>
 			</Card>
 		</AuthScaffold>
-	)
+	);
 }
 
 async function convertImageToBase64(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const reader = new FileReader()
-		reader.onloadend = () => resolve(reader.result as string)
-		reader.onerror = reject
-		reader.readAsDataURL(file)
-	})
+		const reader = new FileReader();
+		reader.onloadend = () => resolve(reader.result as string);
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
 }

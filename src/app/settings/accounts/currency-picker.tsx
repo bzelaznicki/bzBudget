@@ -1,47 +1,47 @@
-"use client"
+"use client";
 
-import { useMemo, useState, useEffect } from "react"
-import type { CurrencyResponse } from "@/db/queries/currencies"
+import { useMemo, useState, useEffect } from "react";
+import type { CurrencyResponse } from "@/db/queries/currencies";
 
 type CurrencyPickerProps = {
-	currencies: CurrencyResponse[]
-}
+	currencies: CurrencyResponse[];
+};
 
 function formatCurrencyLabel(currency: CurrencyResponse) {
-	return `${currency.name} (${currency.isoCode})`
+	return `${currency.name} (${currency.isoCode})`;
 }
 
 function normalise(value: string) {
-	return value.trim().toLowerCase()
+	return value.trim().toLowerCase();
 }
 
 export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
-	const [query, setQuery] = useState("")
-	const [open, setOpen] = useState(false)
-	const [selected, setSelected] = useState<CurrencyResponse | null>(null)
+	const [query, setQuery] = useState("");
+	const [open, setOpen] = useState(false);
+	const [selected, setSelected] = useState<CurrencyResponse | null>(null);
 
 	useEffect(() => {
 		if (selected) {
-			setQuery(formatCurrencyLabel(selected))
+			setQuery(formatCurrencyLabel(selected));
 		}
-	}, [selected])
+	}, [selected]);
 
 	const filtered = useMemo(() => {
-		const normalisedQuery = normalise(query)
+		const normalisedQuery = normalise(query);
 		if (!normalisedQuery) {
-			return currencies.slice(0, 8)
+			return currencies.slice(0, 8);
 		}
 		return currencies
 			.filter((currency) => {
 				const haystack = [currency.name, currency.isoCode, currency.symbol]
 					.filter(Boolean)
 					.join(" ")
-					.toLowerCase()
+					.toLowerCase();
 
-				return haystack.includes(normalisedQuery)
+				return haystack.includes(normalisedQuery);
 			})
-			.slice(0, 8)
-	}, [currencies, query])
+			.slice(0, 8);
+	}, [currencies, query]);
 
 	return (
 		<div className="grid gap-2">
@@ -60,13 +60,13 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 					aria-controls="currency-picker-list"
 					onFocus={() => setOpen(true)}
 					onChange={(event) => {
-						setQuery(event.target.value)
-						setSelected(null)
-						setOpen(true)
+						setQuery(event.target.value);
+						setSelected(null);
+						setOpen(true);
 					}}
 					onBlur={(event) => {
 						if (!event.currentTarget.contains(event.relatedTarget)) {
-							setOpen(false)
+							setOpen(false);
 						}
 					}}
 				/>
@@ -90,11 +90,11 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 											aria-selected={selected?.id === currency.id}
 											className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left hover:bg-emerald-50 focus:bg-emerald-50"
 											onMouseDown={(event) => {
-												event.preventDefault()
+												event.preventDefault();
 											}}
 											onClick={() => {
-												setSelected(currency)
-												setOpen(false)
+												setSelected(currency);
+												setOpen(false);
 											}}
 										>
 											<span className="font-medium text-gray-900">
@@ -117,5 +117,5 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 					: "Choose the currency to store balances in."}
 			</p>
 		</div>
-	)
+	);
 }

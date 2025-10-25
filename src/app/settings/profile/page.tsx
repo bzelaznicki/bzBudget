@@ -1,18 +1,18 @@
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	year: "numeric",
 	month: "short",
 	day: "numeric",
-})
+});
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	year: "numeric",
@@ -21,75 +21,75 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	hour: "2-digit",
 	minute: "2-digit",
 	hour12: true,
-})
+});
 
 function toDate(value: Date | string | null | undefined) {
-	if (!value) return null
-	const parsed = value instanceof Date ? value : new Date(value)
+	if (!value) return null;
+	const parsed = value instanceof Date ? value : new Date(value);
 	if (Number.isNaN(parsed.getTime())) {
-		return null
+		return null;
 	}
-	return parsed
+	return parsed;
 }
 
 function formatDisplayDate(value: Date | string | null | undefined) {
-	const date = toDate(value)
-	if (!date) return null
-	return DATE_FORMATTER.format(date)
+	const date = toDate(value);
+	if (!date) return null;
+	return DATE_FORMATTER.format(date);
 }
 
 function formatDateTime(value: Date | string | null | undefined) {
-	const date = toDate(value)
-	if (!date) return "Unknown"
-	return DATE_TIME_FORMATTER.format(date)
+	const date = toDate(value);
+	if (!date) return "Unknown";
+	return DATE_TIME_FORMATTER.format(date);
 }
 
 function sessionDeviceName(userAgent: string | null | undefined) {
-	if (!userAgent) return "Unknown device"
-	const trimmed = userAgent.trim()
-	if (trimmed.length === 0) return "Unknown device"
-	return trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed
+	if (!userAgent) return "Unknown device";
+	const trimmed = userAgent.trim();
+	if (trimmed.length === 0) return "Unknown device";
+	return trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
 }
 
 async function revokeSessionAction(formData: FormData) {
-	"use server"
+	"use server";
 
-	const token = formData.get("token")
+	const token = formData.get("token");
 
 	if (typeof token !== "string" || token.trim().length === 0) {
-		return
+		return;
 	}
 
 	try {
 		await auth.api.revokeSession({
 			headers: cloneRequestHeaders(),
 			body: { token },
-		})
+		});
 	} finally {
-		revalidatePath("/settings/profile")
+		revalidatePath("/settings/profile");
 	}
 }
 
 function cloneRequestHeaders() {
-	return new Headers(headers())
+	return new Headers(headers());
 }
 
 export default async function ManageAccountPage() {
-	const requestHeaders = cloneRequestHeaders()
-	const session = await auth.api.getSession({ headers: requestHeaders })
+	const requestHeaders = cloneRequestHeaders();
+	const session = await auth.api.getSession({ headers: requestHeaders });
 
 	if (!session) {
-		redirect("/login")
+		redirect("/login");
 	}
 
 	const sessionList = await auth.api.listSessions({
 		headers: requestHeaders,
-	})
+	});
 
-	const { user } = session
-	const createdAt = formatDisplayDate(user.createdAt)
-	const activeSessions = Array.isArray(sessionList) ? sessionList : []
-	const currentToken = session.session.token
+	const { user } = session;
+	const createdAt = formatDisplayDate(user.createdAt);
+	const activeSessions = Array.isArray(sessionList) ? sessionList : [];
+	const currentToken = session.session.token;
 
 	return (
 		<div className="min-h-screen bg-gray-50 px-6 py-10">
@@ -197,7 +197,7 @@ export default async function ManageAccountPage() {
 											</div>
 										) : (
 											activeSessions.map((sessionItem) => {
-												const isCurrentSession = sessionItem.token === currentToken
+												const isCurrentSession = sessionItem.token === currentToken;
 												return (
 													<div
 														key={sessionItem.token}
@@ -236,7 +236,7 @@ export default async function ManageAccountPage() {
 															</form>
 														)}
 													</div>
-												)
+												);
 											})
 										)}
 									</div>
@@ -290,5 +290,5 @@ export default async function ManageAccountPage() {
 				</main>
 			</div>
 		</div>
-	)
+	);
 }

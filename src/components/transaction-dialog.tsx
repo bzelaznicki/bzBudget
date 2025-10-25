@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
+import * as React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
-import type { BankAccountResponse } from "@/db/queries/accounts"
-import type { CategoryResponse } from "@/db/queries/categories"
-import type { CurrencyResponse } from "@/db/queries/currencies"
-import type { TransactionResponse } from "@/db/queries/transactions"
+import type { BankAccountResponse } from "@/db/queries/accounts";
+import type { CategoryResponse } from "@/db/queries/categories";
+import type { CurrencyResponse } from "@/db/queries/currencies";
+import type { TransactionResponse } from "@/db/queries/transactions";
 import {
 	Dialog,
 	DialogContent,
@@ -17,8 +17,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -26,30 +26,30 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select"
-import { transactionFormSchema, type TransactionFormValues } from "@/lib/validation/transactions"
+} from "@/components/ui/select";
+import { transactionFormSchema, type TransactionFormValues } from "@/lib/validation/transactions";
 
 type TransactionMetaResponse = {
-	accounts: BankAccountResponse[]
-	currencies: CurrencyResponse[]
-	categories: CategoryResponse[]
-}
+	accounts: BankAccountResponse[];
+	currencies: CurrencyResponse[];
+	categories: CategoryResponse[];
+};
 
-const UNCATEGORIZED_SELECT_VALUE = "uncategorized"
+const UNCATEGORIZED_SELECT_VALUE = "uncategorized";
 
 export interface TransactionDialogProps {
-	open: boolean
-	onOpenChange: (open: boolean) => void
-	onTransactionCreated: (transaction: TransactionResponse) => void
-	trigger?: React.ReactNode
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onTransactionCreated: (transaction: TransactionResponse) => void;
+	trigger?: React.ReactNode;
 }
 
 export function TransactionDialog({
@@ -58,93 +58,93 @@ export function TransactionDialog({
 	onTransactionCreated,
 	trigger,
 }: TransactionDialogProps) {
-	const [meta, setMeta] = React.useState<TransactionMetaResponse | null>(null)
-	const [metaLoading, setMetaLoading] = React.useState(false)
-	const [metaError, setMetaError] = React.useState<string | null>(null)
-	const fetchingMeta = React.useRef(false)
+	const [meta, setMeta] = React.useState<TransactionMetaResponse | null>(null);
+	const [metaLoading, setMetaLoading] = React.useState(false);
+	const [metaError, setMetaError] = React.useState<string | null>(null);
+	const fetchingMeta = React.useRef(false);
 
 	const form = useForm<TransactionFormValues>({
 		resolver: zodResolver(transactionFormSchema),
 		defaultValues: buildDefaultValues(null),
-	})
+	});
 
-	const isSubmitting = form.formState.isSubmitting
+	const isSubmitting = form.formState.isSubmitting;
 
 	const ensureMetaLoaded = React.useCallback(
 		async (force = false) => {
-			if (!force && (meta || fetchingMeta.current)) return
-			if (fetchingMeta.current) return
-			fetchingMeta.current = true
+			if (!force && (meta || fetchingMeta.current)) return;
+			if (fetchingMeta.current) return;
+			fetchingMeta.current = true;
 			try {
-				setMetaLoading(true)
-				setMetaError(null)
-				const response = await fetch("/api/transactions/meta")
+				setMetaLoading(true);
+				setMetaError(null);
+				const response = await fetch("/api/transactions/meta");
 				if (!response.ok) {
-					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null
-					throw new Error(errorBody?.error ?? "Unable to load form data")
+					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+					throw new Error(errorBody?.error ?? "Unable to load form data");
 				}
-				const data = (await response.json()) as TransactionMetaResponse
-				setMeta(data)
+				const data = (await response.json()) as TransactionMetaResponse;
+				setMeta(data);
 			} catch (error) {
-				const message = error instanceof Error ? error.message : "Unable to load form data"
-				setMetaError(message)
+				const message = error instanceof Error ? error.message : "Unable to load form data";
+				setMetaError(message);
 			} finally {
-				setMetaLoading(false)
-				fetchingMeta.current = false
+				setMetaLoading(false);
+				fetchingMeta.current = false;
 			}
 		},
 		[meta],
-	)
+	);
 
 	React.useEffect(() => {
 		if (open) {
-			void ensureMetaLoaded()
+			void ensureMetaLoaded();
 			form.setValue("bookedAt", formatDateTimeLocal(new Date()), {
 				shouldDirty: false,
-			})
+			});
 		}
-	}, [open, ensureMetaLoaded, form])
+	}, [open, ensureMetaLoaded, form]);
 
 	React.useEffect(() => {
-		if (!meta) return
-		const defaults = buildDefaultValues(meta)
+		if (!meta) return;
+		const defaults = buildDefaultValues(meta);
 
 		if (!form.getValues("accountsId") && defaults.accountsId) {
-			form.setValue("accountsId", defaults.accountsId, { shouldDirty: false })
+			form.setValue("accountsId", defaults.accountsId, { shouldDirty: false });
 		}
 
 		if (!form.getValues("currenciesId") && defaults.currenciesId) {
-			form.setValue("currenciesId", defaults.currenciesId, { shouldDirty: false })
+			form.setValue("currenciesId", defaults.currenciesId, { shouldDirty: false });
 		}
-	}, [meta, form])
+	}, [meta, form]);
 
 	React.useEffect(() => {
 		if (!open) {
-			form.reset(buildDefaultValues(meta))
+			form.reset(buildDefaultValues(meta));
 		}
-	}, [open, form, meta])
+	}, [open, form, meta]);
 
 	const handleRetry = React.useCallback(() => {
-		setMeta(null)
-		void ensureMetaLoaded(true)
-	}, [ensureMetaLoaded])
+		setMeta(null);
+		void ensureMetaLoaded(true);
+	}, [ensureMetaLoaded]);
 
 	const onSubmit = React.useCallback(
 		async (values: TransactionFormValues) => {
-			const amountNumber = Number(values.amount)
+			const amountNumber = Number(values.amount);
 			if (Number.isNaN(amountNumber)) {
-				toast.error("Amount must be a valid number")
-				return
+				toast.error("Amount must be a valid number");
+				return;
 			}
 
-			const bookedDate = new Date(values.bookedAt)
+			const bookedDate = new Date(values.bookedAt);
 			if (Number.isNaN(bookedDate.getTime())) {
-				toast.error("Booked date is invalid")
-				return
+				toast.error("Booked date is invalid");
+				return;
 			}
 
-			const description = values.description?.trim()
-			const normalizedDescription = description && description.length > 0 ? description : undefined
+			const description = values.description?.trim();
+			const normalizedDescription = description && description.length > 0 ? description : undefined;
 
 			const payload = {
 				accountsId: values.accountsId,
@@ -155,7 +155,7 @@ export function TransactionDialog({
 				bookedAt: bookedDate.toISOString(),
 				description: normalizedDescription,
 				categoriesId: values.categoriesId,
-			}
+			};
 
 			try {
 				const response = await fetch("/api/transactions", {
@@ -164,32 +164,32 @@ export function TransactionDialog({
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify(payload),
-				})
+				});
 
 				if (!response.ok) {
-					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null
-					throw new Error(errorBody?.error ?? "Unable to create transaction")
+					const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+					throw new Error(errorBody?.error ?? "Unable to create transaction");
 				}
 
-				const transaction = (await response.json()) as TransactionResponse
-				onTransactionCreated(transaction)
-				toast.success("Transaction added")
+				const transaction = (await response.json()) as TransactionResponse;
+				onTransactionCreated(transaction);
+				toast.success("Transaction added");
 
-				form.reset(buildDefaultValues(meta))
-				onOpenChange(false)
+				form.reset(buildDefaultValues(meta));
+				onOpenChange(false);
 			} catch (error) {
-				const message = error instanceof Error ? error.message : "Unable to create transaction"
-				toast.error(message)
+				const message = error instanceof Error ? error.message : "Unable to create transaction";
+				toast.error(message);
 			}
 		},
 		[form, meta, onOpenChange, onTransactionCreated],
-	)
+	);
 
-	const categories = meta?.categories ?? []
-	const accounts = meta?.accounts ?? []
-	const currencies = meta?.currencies ?? []
-	const submitDisabled = isSubmitting || accounts.length === 0 || currencies.length === 0
-	const showAccountHint = accounts.length === 0 && !metaLoading
+	const categories = meta?.categories ?? [];
+	const accounts = meta?.accounts ?? [];
+	const currencies = meta?.currencies ?? [];
+	const submitDisabled = isSubmitting || accounts.length === 0 || currencies.length === 0;
+	const showAccountHint = accounts.length === 0 && !metaLoading;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -227,12 +227,12 @@ export function TransactionDialog({
 												<Select
 													value={field.value}
 													onValueChange={(value) => {
-														field.onChange(value)
-														const account = accounts.find((item) => item.id === value)
+														field.onChange(value);
+														const account = accounts.find((item) => item.id === value);
 														if (account) {
 															form.setValue("currenciesId", account.currenciesId, {
 																shouldDirty: false,
-															})
+															});
 														}
 													}}
 													disabled={metaLoading || accounts.length === 0 || isSubmitting}
@@ -357,10 +357,10 @@ export function TransactionDialog({
 													value={field.value ?? UNCATEGORIZED_SELECT_VALUE}
 													onValueChange={(value) => {
 														if (value === UNCATEGORIZED_SELECT_VALUE) {
-															field.onChange(undefined)
-															return
+															field.onChange(undefined);
+															return;
 														}
-														field.onChange(value)
+														field.onChange(value);
 													}}
 													disabled={isSubmitting}
 												>
@@ -434,15 +434,15 @@ export function TransactionDialog({
 				)}
 			</DialogContent>
 		</Dialog>
-	)
+	);
 }
 
 function buildDefaultValues(meta: TransactionMetaResponse | null): TransactionFormValues {
-	const now = formatDateTimeLocal(new Date())
-	const defaultAccount = meta?.accounts.length === 1 ? meta.accounts[0] : undefined
-	const defaultCurrencyFromAccount = defaultAccount?.currenciesId
+	const now = formatDateTimeLocal(new Date());
+	const defaultAccount = meta?.accounts.length === 1 ? meta.accounts[0] : undefined;
+	const defaultCurrencyFromAccount = defaultAccount?.currenciesId;
 	const defaultCurrency =
-		defaultCurrencyFromAccount ?? (meta?.currencies.length === 1 ? meta.currencies[0].id : "")
+		defaultCurrencyFromAccount ?? (meta?.currencies.length === 1 ? meta.currencies[0].id : "");
 
 	return {
 		accountsId: defaultAccount ? defaultAccount.id : "",
@@ -453,15 +453,15 @@ function buildDefaultValues(meta: TransactionMetaResponse | null): TransactionFo
 		bookedAt: now,
 		description: "",
 		categoriesId: undefined,
-	}
+	};
 }
 
 function formatDateTimeLocal(date: Date) {
-	const pad = (value: number) => String(value).padStart(2, "0")
-	const year = date.getFullYear()
-	const month = pad(date.getMonth() + 1)
-	const day = pad(date.getDate())
-	const hours = pad(date.getHours())
-	const minutes = pad(date.getMinutes())
-	return `${year}-${month}-${day}T${hours}:${minutes}`
+	const pad = (value: number) => String(value).padStart(2, "0");
+	const year = date.getFullYear();
+	const month = pad(date.getMonth() + 1);
+	const day = pad(date.getDate());
+	const hours = pad(date.getHours());
+	const minutes = pad(date.getMinutes());
+	return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
