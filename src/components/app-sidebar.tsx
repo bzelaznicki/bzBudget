@@ -9,6 +9,7 @@ import {
 	IconFileWord,
 	IconFolder,
 	IconHelp,
+	IconCreditCard,
 	IconCoins,
 	IconListDetails,
 	IconReport,
@@ -47,9 +48,9 @@ const data = {
 			icon: <IconDashboard />,
 		},
 		{
-			title: "Lifecycle",
-			url: "/lifecycle",
-			icon: <IconListDetails />,
+			title: "Transactions",
+			url: "/transactions",
+			icon: <IconCreditCard />,
 		},
 		{
 			title: "Analytics",

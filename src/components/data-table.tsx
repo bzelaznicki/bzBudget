@@ -12,8 +12,6 @@ const DEFAULT_FETCH_LIMIT = 200;
 async function loadTransactions(userId: string) {
 	const transactions = await getUserTransactions({
 		usersId: userId,
-		dateFrom: null,
-		dateTo: null,
 		limit: DEFAULT_FETCH_LIMIT,
 		offset: 0,
 		sortField: "bookedAt",

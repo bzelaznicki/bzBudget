@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, count } from "drizzle-orm";
 import { db } from "../db";
 import { transactions, currencies, categories } from "../schema";
 
@@ -30,13 +30,15 @@ export interface TransactionResponse {
 
 export interface GetTransactionsArgs {
 	usersId: string;
-	dateFrom: Date | null;
-	dateTo: Date | null;
-	limit: number | null;
-	offset: number | null;
-	sortField: "bookedAt" | "amount" | "counterparty" | "type" | "createdAt" | "updatedAt" | null;
-	dir: "asc" | "desc" | null;
+	dateFrom?: Date;
+	dateTo?: Date;
+	limit?: number | null;
+	offset?: number | null;
+	sortField?: "bookedAt" | "amount" | "counterparty" | "type" | "createdAt" | "updatedAt";
+	dir?: "asc" | "desc" | null;
 }
+
+export type CountTransactionsArgs = Pick<GetTransactionsArgs, "usersId" | "dateFrom" | "dateTo">;
 
 export async function createTransaction(
 	userId: string,
@@ -102,14 +104,14 @@ export async function createTransaction(
 			.limit(1),
 		transaction.categoriesId
 			? db
-					.select({
-						id: categories.id,
-						name: categories.name,
-						type: categories.type,
-					})
-					.from(categories)
-					.where(eq(categories.id, transaction.categoriesId))
-					.limit(1)
+				.select({
+					id: categories.id,
+					name: categories.name,
+					type: categories.type,
+				})
+				.from(categories)
+				.where(eq(categories.id, transaction.categoriesId))
+				.limit(1)
 			: Promise.resolve([]),
 	]);
 
@@ -121,10 +123,10 @@ export async function createTransaction(
 	const category =
 		categoryResult.length > 0
 			? {
-					id: categoryResult[0].id,
-					name: categoryResult[0].name,
-					type: categoryResult[0].type,
-				}
+				id: categoryResult[0].id,
+				name: categoryResult[0].name,
+				type: categoryResult[0].type,
+			}
 			: null;
 
 	return {
@@ -223,31 +225,51 @@ export async function getUserTransactions(
 
 	return userTransactions.length > 0
 		? userTransactions.map((transaction) => ({
-				id: transaction.id,
-				usersId: transaction.usersId,
-				accountsId: transaction.accountsId,
-				amount: transaction.amount,
-				description: transaction.description,
-				counterparty: transaction.counterparty,
-				currenciesId: transaction.currenciesId,
-				currency: {
-					isoCode: transaction.currencyIsoCode,
-					symbol: transaction.currencySymbol,
-					position: transaction.currencyPosition === "before" ? "before" : "after",
-				},
-				categoriesId: transaction.categoriesId,
-				category: transaction.categoryId
-					? {
-							id: transaction.categoryId,
-							name: transaction.categoryName ?? "Uncategorized",
-							type: transaction.categoryType ?? "system",
-						}
-					: null,
-				externalId: transaction.externalId,
-				bookedAt: transaction.bookedAt,
-				type: transaction.type,
-				createdAt: transaction.createdAt,
-				updatedAt: transaction.updatedAt,
-			}))
+			id: transaction.id,
+			usersId: transaction.usersId,
+			accountsId: transaction.accountsId,
+			amount: transaction.amount,
+			description: transaction.description,
+			counterparty: transaction.counterparty,
+			currenciesId: transaction.currenciesId,
+			currency: {
+				isoCode: transaction.currencyIsoCode,
+				symbol: transaction.currencySymbol,
+				position: transaction.currencyPosition === "before" ? "before" : "after",
+			},
+			categoriesId: transaction.categoriesId,
+			category: transaction.categoryId
+				? {
+					id: transaction.categoryId,
+					name: transaction.categoryName ?? "Uncategorized",
+					type: transaction.categoryType ?? "system",
+				}
+				: null,
+			externalId: transaction.externalId,
+			bookedAt: transaction.bookedAt,
+			type: transaction.type,
+			createdAt: transaction.createdAt,
+			updatedAt: transaction.updatedAt,
+		}))
 		: null;
+}
+
+export async function countUserTransactions(args: CountTransactionsArgs): Promise<number> {
+	const filters = [eq(transactions.usersId, args.usersId)];
+	if (args.dateFrom) {
+		filters.push(gte(transactions.bookedAt, args.dateFrom));
+	}
+	if (args.dateTo) {
+		filters.push(lte(transactions.bookedAt, args.dateTo));
+	}
+
+	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
+	const result = await db
+		.select({
+			total: count(),
+		})
+		.from(transactions)
+		.where(whereClause);
+
+	return Number(result[0]?.total ?? 0);
 }
