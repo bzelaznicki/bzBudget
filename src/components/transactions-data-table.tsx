@@ -1,38 +1,41 @@
-import { getUserTransactions, countUserTransactions } from "@/db/queries/transactions";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-
-async function fetchTransactions(userId: string, dateFrom?: Date, dateTo?: Date) {
-	const transactions = await getUserTransactions({
-		usersId: userId,
-		dateFrom: dateFrom,
-		dateTo: dateTo,
-	});
-
-	return transactions ?? [];
-}
-
-async function fetchTransactionCount(userId: string, dateFrom?: Date, dateTo?: Date) {
-
-	const transactionCount = await countUserTransactions({
-		usersId: userId,
-		dateFrom,
-		dateTo,
-	});
-
-	return transactionCount;
-}
+"use client";
+import { useState } from "react";
+import { TransactionResponse } from "@/db/queries/transactions";
 
 
 export async function TransactionsDataTable() {
-	const requestHeaders = await headers();
-	const session = await auth.api.getSession({ headers: requestHeaders })
 
-	if (!session) redirect("/login");
+	const [error, setError] = useState<string | null>(null);
+	const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
+	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [totalPages, setTotalPages] = useState<number>(0);
+	const [accounts, setAccounts] = useState<Record<string, string> | null>(null);
+	const [perPage, setPerPage] = useState<number>(10);
 
-	const transactions = await fetchTransactions(session.user.id);
-	const transactionCount = await fetchTransactionCount(session.user.id);
+	const fetchTransactions = async () => {
+		const url = "/api/transactions";
 
+		try {
+			const res = await fetch(url);
 
+			if (!res.ok) {
+				const errorBody = (await res.json().catch(() => null)) as { error?: string } | null;
+				setError(errorBody?.error ?? "Error fetching transactions");
+				return;
+			}
+
+		} catch (err: unknown) {
+			if (err instanceof Error) {
+				setError(err.message);
+				return;
+			}
+			setError("Error fetching transactions");§
+		}
+	}
+
+	return (
+		<>
+
+		</>
+	)
 }
