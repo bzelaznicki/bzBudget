@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TransactionResponse } from "@/db/queries/transactions";
 
 import {
@@ -9,6 +9,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 const PAGE_SIZE_OPTIONS = ["10", "20", "50"];
 const ALL_OPTION = "all";
@@ -63,7 +64,7 @@ export async function TransactionsDataTable() {
 		}
 	}
 
-	const currencyOptions = React.useMemo(() => {
+	const currencyOptions = useMemo(() => {
 		const uniqueCurrencies = new Map<string, TransactionRow["currency"]>();
 		for (const transaction of preparedData) {
 			if (!uniqueCurrencies.has(transaction.currency.isoCode)) {
