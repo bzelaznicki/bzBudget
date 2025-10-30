@@ -175,7 +175,7 @@ export default function SignUp() {
 						</div>
 						<Button
 							type="button"
-							variant="primary"
+							variant="default"
 							className="w-full"
 							disabled={loading}
 							onClick={async () => {

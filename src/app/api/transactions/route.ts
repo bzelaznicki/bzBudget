@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 		const parsed = transactionPayloadSchema.safeParse(json);
 
 		if (!parsed.success) {
-			const message = parsed.error.errors[0]?.message ?? "Invalid transaction payload";
+			const message = parsed.error.issues[0]?.message ?? "Invalid transaction payload";
 			return respondWithError(400, message);
 		}
 

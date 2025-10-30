@@ -281,7 +281,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 							<Select
 								value={String(pageSize)}
 								onValueChange={(value) =>
-									setPagination((prev) => ({
+									setPagination(() => ({
 										pageIndex: 0,
 										pageSize: Number(value),
 									}))
@@ -344,7 +344,7 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 					Showing {NUMBER_FORMATTER.format(displayFrom)} – {NUMBER_FORMATTER.format(displayTo)} of{" "}
 					{NUMBER_FORMATTER.format(totalRows)}
 					{(selectedCurrency !== ALL_OPTION || selectedCategory !== ALL_OPTION) &&
-					totalRecords > 0 ? (
+						totalRecords > 0 ? (
 						<> (filtered from {NUMBER_FORMATTER.format(totalRecords)})</>
 					) : null}
 				</div>

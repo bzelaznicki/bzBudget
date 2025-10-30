@@ -94,8 +94,8 @@ export default function SignIn() {
 								<Checkbox
 									id="remember"
 									checked={rememberMe}
-									onChange={(event) => {
-										setRememberMe(event.target.checked);
+									onCheckedChange={(checked) => {
+										setRememberMe(checked === true);
 									}}
 								/>
 								Remember me

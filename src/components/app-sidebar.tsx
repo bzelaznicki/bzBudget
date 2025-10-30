@@ -11,7 +11,6 @@ import {
 	IconHelp,
 	IconCreditCard,
 	IconCoins,
-	IconListDetails,
 	IconReport,
 	IconSearch,
 	IconSettings,

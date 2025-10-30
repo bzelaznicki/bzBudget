@@ -62,7 +62,7 @@ async function revokeSessionAction(formData: FormData) {
 
 	try {
 		await auth.api.revokeSession({
-			headers: cloneRequestHeaders(),
+			headers: await cloneRequestHeaders(),
 			body: { token },
 		});
 	} finally {
@@ -70,20 +70,20 @@ async function revokeSessionAction(formData: FormData) {
 	}
 }
 
-function cloneRequestHeaders() {
-	return new Headers(headers());
+async function cloneRequestHeaders() {
+	return new Headers(await headers());
 }
 
 export default async function ManageAccountPage() {
 	const requestHeaders = cloneRequestHeaders();
-	const session = await auth.api.getSession({ headers: requestHeaders });
+	const session = await auth.api.getSession({ headers: await requestHeaders });
 
 	if (!session) {
 		redirect("/login");
 	}
 
 	const sessionList = await auth.api.listSessions({
-		headers: requestHeaders,
+		headers: await requestHeaders,
 	});
 
 	const { user } = session;
@@ -150,7 +150,7 @@ export default async function ManageAccountPage() {
 															{createdAt ? ` • Joined ${createdAt}` : null}
 														</p>
 													</div>
-													<Button type="button" variant="primary" className="w-full sm:w-auto">
+													<Button type="button" variant="default" className="w-full sm:w-auto">
 														Save changes
 													</Button>
 												</div>
@@ -221,7 +221,7 @@ export default async function ManageAccountPage() {
 																	{isCurrentSession ? null : (
 																		<form action={revokeSessionAction} className="mt-3 flex justify-end">
 																			<input type="hidden" name="token" value={sessionItem.token} />
-																			<Button type="submit" variant="danger" className="whitespace-nowrap px-3 py-1.5 text-xs">
+																			<Button type="submit" variant="destructive" className="whitespace-nowrap px-3 py-1.5 text-xs">
 																				Revoke session
 																			</Button>
 																		</form>
@@ -232,8 +232,8 @@ export default async function ManageAccountPage() {
 													)}
 												</div>
 											</div>
-											</CardContent>
-										</Card>
+										</CardContent>
+									</Card>
 								</section>
 
 								<aside className="space-y-6">
@@ -253,7 +253,7 @@ export default async function ManageAccountPage() {
 											<div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
 												No integrations connected yet.
 											</div>
-											<Button type="button" variant="primary" className="w-full">
+											<Button type="button" variant="default" className="w-full">
 												Add a connection
 											</Button>
 										</CardContent>
@@ -270,7 +270,7 @@ export default async function ManageAccountPage() {
 											<p className="text-xs text-gray-500">
 												Account deletion removes personal data and disconnects any linked services. You can restore your account by signing back in before the recovery period ends.
 											</p>
-											<Button type="button" variant="danger" className="w-full">
+											<Button type="button" variant="destructive" className="w-full">
 												Delete account
 											</Button>
 										</CardContent>

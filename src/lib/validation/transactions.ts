@@ -9,7 +9,7 @@ export const transactionFormSchema = z.object({
 	counterparty: z.string().min(1, "Counterparty is required"),
 	currenciesId: z.string().uuid({ message: "Select a currency" }),
 	type: z.enum(["incoming", "outgoing"], {
-		errorMap: () => ({ message: "Select a transaction type" }),
+		error: "Select a transaction type",
 	}),
 	bookedAt: z
 		.string()
