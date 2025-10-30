@@ -11,7 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Loader2, X } from "lucide-react";
 import { signUp } from "@/lib/auth-client";
@@ -19,6 +26,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
+import type { CurrencyResponse } from "@/db/queries/currencies";
 
 export default function SignUp() {
 	const [firstName, setFirstName] = useState("");
@@ -28,6 +36,9 @@ export default function SignUp() {
 	const [passwordConfirmation, setPasswordConfirmation] = useState("");
 	const [image, setImage] = useState<File | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const [currencies, setCurrencies] = useState<CurrencyResponse[]>([]);
+	const [defaultCurrencyId, setDefaultCurrencyId] = useState("");
+	const [currenciesLoading, setCurrenciesLoading] = useState(true);
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 
@@ -42,6 +53,41 @@ export default function SignUp() {
 			reader.readAsDataURL(file);
 		}
 	};
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const loadCurrencies = async () => {
+			try {
+				const response = await fetch("/api/currencies");
+				if (!response.ok) {
+					throw new Error("Failed to fetch currencies");
+				}
+				const data: CurrencyResponse[] = await response.json();
+				if (!isMounted) {
+					return;
+				}
+				setCurrencies(data);
+				if (data.length === 1) {
+					setDefaultCurrencyId(data[0].id);
+				}
+			} catch {
+				if (isMounted) {
+					toast.error("Failed to load currency options. Please try again.");
+				}
+			} finally {
+				if (isMounted) {
+					setCurrenciesLoading(false);
+				}
+			}
+		};
+
+		void loadCurrencies();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	return (
 		<AuthScaffold
@@ -112,6 +158,51 @@ export default function SignUp() {
 								value={email}
 							/>
 						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="default-currency">Default currency</Label>
+							<Select
+								value={defaultCurrencyId}
+								onValueChange={setDefaultCurrencyId}
+								disabled={currenciesLoading || currencies.length === 0}
+							>
+								<SelectTrigger
+									id="default-currency"
+									className="w-full justify-between"
+									aria-label="Default currency"
+								>
+									<SelectValue
+										placeholder={
+											currenciesLoading
+												? "Loading currencies..."
+												: "Select your default currency"
+										}
+									/>
+								</SelectTrigger>
+								{currencies.length > 0 ? (
+									<SelectContent>
+										{currencies.map((currency) => (
+											<SelectItem key={currency.id} value={currency.id}>
+												<span className="flex flex-col text-left">
+													<span className="font-medium text-gray-900">
+														{currency.name}
+													</span>
+													<span className="text-xs text-gray-500">
+														{currency.symbol
+															? `${currency.symbol} · ${currency.isoCode}`
+															: currency.isoCode}
+													</span>
+												</span>
+											</SelectItem>
+										))}
+									</SelectContent>
+								) : null}
+							</Select>
+							<p className="text-xs text-gray-500">
+								{!currenciesLoading && currencies.length === 0
+									? "Currencies are unavailable right now. Please refresh the page or try again later."
+									: "Used to format totals and insights across your dashboard."}
+							</p>
+						</div>
 						<div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
 							<div className="grid gap-2">
 								<Label htmlFor="password">Password</Label>
@@ -177,13 +268,18 @@ export default function SignUp() {
 							type="button"
 							variant="default"
 							className="w-full"
-							disabled={loading}
+							disabled={loading || currenciesLoading}
 							onClick={async () => {
+								if (!defaultCurrencyId) {
+									toast.error("Select a default currency before continuing.");
+									return;
+								}
 								await signUp.email({
 									email,
 									password,
 									name: `${firstName} ${lastName}`,
 									image: image ? await convertImageToBase64(image) : "",
+									defaultCurrenciesId: defaultCurrencyId,
 									callbackURL: "/dashboard",
 									fetchOptions: {
 										onResponse: () => {
