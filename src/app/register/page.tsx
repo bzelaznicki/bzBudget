@@ -274,11 +274,13 @@ export default function SignUp() {
 									toast.error("Select a default currency before continuing.");
 									return;
 								}
-								await signUp.email({
+								type SignUpEmailPayload = Parameters<(typeof signUp)["email"]>[0];
+								const encodedImage = image ? await convertImageToBase64(image) : "";
+								const payload = {
 									email,
 									password,
 									name: `${firstName} ${lastName}`,
-									image: image ? await convertImageToBase64(image) : "",
+									image: encodedImage,
 									defaultCurrenciesId: defaultCurrencyId,
 									callbackURL: "/dashboard",
 									fetchOptions: {
@@ -288,14 +290,15 @@ export default function SignUp() {
 										onRequest: () => {
 											setLoading(true);
 										},
-										onError: (ctx) => {
-											toast.error(ctx.error.message);
+										onError: ({ error }: { error: { message: string } }) => {
+											toast.error(error.message);
 										},
 										onSuccess: async () => {
 											router.push("/dashboard");
 										},
 									},
-								});
+								} as SignUpEmailPayload;
+								await signUp.email(payload);
 							}}
 						>
 							{loading ? <Loader2 size={16} className="animate-spin" /> : "Create account"}

@@ -24,9 +24,11 @@ export const auth = betterAuth({
 			defaultCurrenciesId: {
 				type: "string",
 				required: true,
-				input: false,
+				input: true,
 			},
 		},
 	},
 	plugins: [nextCookies()],
 });
+
+export type AppAuthOptions = (typeof auth)["options"];
