@@ -13,6 +13,8 @@ import {
 	IconReport,
 	IconSearch,
 	IconSettings,
+	IconBuildingBank,
+	IconBug
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -105,6 +107,11 @@ const data = {
 		},
 	],
 	navSecondary: [
+		{
+			title: "Accounts",
+			url: "/settings/accounts",
+			icon: <IconBuildingBank />,
+		},
 		{
 			title: "Settings",
 			url: "#",
