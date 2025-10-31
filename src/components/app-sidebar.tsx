@@ -7,14 +7,12 @@ import {
 	IconFileAi,
 	IconFileDescription,
 	IconFileWord,
-	IconFolder,
 	IconHelp,
 	IconCreditCard,
 	IconCoins,
 	IconReport,
 	IconSearch,
 	IconSettings,
-	IconUsers,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -56,16 +54,7 @@ const data = {
 			url: "#",
 			icon: <IconChartBar />,
 		},
-		{
-			title: "Projects",
-			url: "#",
-			icon: <IconFolder />,
-		},
-		{
-			title: "Team",
-			url: "#",
-			icon: <IconUsers />,
-		},
+
 	],
 	navClouds: [
 		{
