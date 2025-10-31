@@ -1,6 +1,6 @@
 import { bankAccounts } from "../schema";
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface BankAccountResponse {
 	id: string;
@@ -48,3 +48,27 @@ export async function getUserBankAccounts(
 
 	return accounts.length > 0 ? accounts : null;
 }
+
+
+export async function deleteUserBankAccount(usersId: string, bankAccountsId: string): Promise<BankAccountResponse | null> {
+	const timestamp = new Date();
+	const res = await db.update(bankAccounts).set({ updatedAt: timestamp, deletedAt: timestamp, }).where(and(
+		(eq(bankAccounts.usersId, usersId),
+			eq(bankAccounts.id, bankAccountsId)))).returning();
+
+	return res[0] ?? null;
+
+
+}
+
+export async function undeleteUserBankAccount(usersId: string, bankAccountsId: string): Promise<BankAccountResponse | null> {
+	const timestamp = new Date();
+	const res = await db.update(bankAccounts).set({ updatedAt: timestamp, deletedAt: null, }).where(and(
+		(eq(bankAccounts.usersId, usersId),
+			eq(bankAccounts.id, bankAccountsId)))).returning();
+
+	return res[0] ?? null;
+
+
+}
+
