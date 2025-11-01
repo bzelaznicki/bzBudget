@@ -1,6 +1,9 @@
-export function respondWithJSON(code: number, data: unknown) {
-	if (typeof data !== "object" && typeof data !== "string") {
-		throw new Error("Payload must be an object or a string");
+export function respondWithJSON(code: number, data?: unknown) {
+	if (typeof data !== "object" && typeof data !== "string" && typeof data !== "undefined") {
+		throw new Error("Payload must be an object, a string");
+	}
+	if (typeof data === undefined && code !== 204) {
+		throw new Error("Empty responses can only be provided on a 204 status");
 	}
 
 	const res = new Response(JSON.stringify(data), {

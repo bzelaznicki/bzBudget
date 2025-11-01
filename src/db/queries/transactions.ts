@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, count } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { transactions, currencies, categories } from "../schema";
 
@@ -34,6 +34,9 @@ export interface GetTransactionsArgs {
 	dateTo?: Date;
 	limit?: number | null;
 	offset?: number | null;
+	status?: "active" | "deleted" | "all";
+	deletedFrom?: Date;
+	deletedTo?: Date;
 	sortField?: "bookedAt" | "amount" | "counterparty" | "type" | "createdAt" | "updatedAt";
 	dir?: "asc" | "desc" | null;
 }
@@ -189,6 +192,18 @@ export async function getUserTransactions(
 	}
 	if (args.dateTo) {
 		filters.push(lte(transactions.bookedAt, args.dateTo));
+	}
+	if (!args.status || args.status === "active") {
+		filters.push(isNull(transactions.deletedAt));
+	}
+	if (args.status === "deleted") {
+		filters.push(isNotNull(transactions.deletedAt));
+	}
+	if (args.deletedFrom) {
+		filters.push(gte(transactions.deletedAt, args.deletedFrom));
+	}
+	if (args.deletedTo) {
+		filters.push(lte(transactions.deletedAt, args.deletedTo));
 	}
 
 	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
