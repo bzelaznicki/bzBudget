@@ -273,3 +273,10 @@ export async function countUserTransactions(args: CountTransactionsArgs): Promis
 
 	return Number(result[0]?.total ?? 0);
 }
+
+export async function deleteUserTransaction(userId: string, transactionId: string) {
+	const timestamp = new Date();
+	const res = await db.update(transactions).set({ updatedAt: timestamp, deletedAt: timestamp }).where(and(eq(transactions.usersId, userId), (eq(transactions.id, transactionId)))).returning();
+
+	return res[0] ?? null;
+}

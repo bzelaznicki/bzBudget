@@ -124,6 +124,7 @@ export const transactions = pgTable(
 		type: transactionsTypeEnum("type").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 	},
 	(table) => ({
 		usersExternalUnique: uniqueIndex("transactions_users_external_unique").on(
