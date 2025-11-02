@@ -400,9 +400,8 @@ export function TransactionsTableClient({ data }: { data: TransactionResponse[] 
 		: false;
 	const counterpartyLabel = transactionPendingDelete?.counterparty?.trim();
 	const deleteDescription = transactionPendingDelete
-		? `Are you sure you want to delete this transaction${
-				counterpartyLabel ? ` from "${counterpartyLabel}"` : ""
-			} for ${formatAmount(transactionPendingDelete.amountNumber, transactionPendingDelete.currency)}? This action cannot be undone.`
+		? `Are you sure you want to delete this transaction${counterpartyLabel ? ` from "${counterpartyLabel}"` : ""
+		} for ${formatAmount(transactionPendingDelete.amountNumber, transactionPendingDelete.currency)}? This action cannot be undone.`
 		: "Are you sure you want to delete this transaction? This action cannot be undone.";
 
 	return (

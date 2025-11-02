@@ -90,7 +90,7 @@ export const bankAccounts = pgTable("bank_accounts", {
 		.references(() => currencies.id),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-	deletedAt: timestamp("updated_at", { withTimezone: true }),
+	deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const categories = pgTable("categories", {

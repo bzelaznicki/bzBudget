@@ -1,27 +1,27 @@
 import { SiteHeader } from "@/components/site-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBankAccount, getUserBankAccounts } from "@/db/queries/accounts";
 import type { BankAccountResponse } from "@/db/queries/accounts";
 import { listCurrencies } from "@/db/queries/currencies";
-import type { CurrencyResponse } from "@/db/queries/currencies";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { CurrencyPicker } from "./currency-picker";
+import { AccountsList } from "./accounts-list";
 
-function formatDateTime(value: Date | string | null | undefined) {
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+	year: "numeric",
+	month: "short",
+	day: "numeric",
+});
+
+function formatAccountDate(value: Date | null): string {
 	if (!value) return "Unknown";
-	const date = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(date.getTime())) return "Unknown";
-	return date.toLocaleDateString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+	return DATE_FORMATTER.format(value);
 }
 
 async function createAccountAction(formData: FormData) {
@@ -63,10 +63,13 @@ export default async function AccountsPage() {
 	]);
 
 	const accountsList: BankAccountResponse[] = accounts ?? [];
-	const currencyLookup = new Map<string, CurrencyResponse>();
-	currencies.forEach((currency) => {
-		currencyLookup.set(currency.id, currency);
-	});
+	const serializedAccounts = accountsList.map((account) => ({
+		...account,
+		createdAt: account.createdAt ? account.createdAt.toISOString() : null,
+		updatedAt: account.updatedAt ? account.updatedAt.toISOString() : null,
+		deletedAt: account.deletedAt ? account.deletedAt.toISOString() : null,
+		createdAtDisplay: formatAccountDate(account.createdAt),
+	}));
 
 	return (
 		<>
@@ -93,32 +96,7 @@ export default async function AccountsPage() {
 											</CardDescription>
 										</CardHeader>
 										<CardContent className="grid gap-4">
-											{accountsList.length === 0 ? (
-												<div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
-													No accounts yet. Use the form on the right to add your first account.
-												</div>
-											) : (
-												accountsList.map((account) => {
-													const currency = currencyLookup.get(account.currenciesId);
-													return (
-														<div
-															key={account.id}
-															className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white/90 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-														>
-															<div>
-																<p className="text-sm font-medium text-gray-900">{account.name}</p>
-																<p className="text-xs text-gray-500">
-																	{currency ? `${currency.symbol} ${currency.isoCode}` : "Unknown currency"}
-																	{account.iban ? ` • IBAN ${account.iban}` : null}
-																</p>
-															</div>
-															<div className="text-right text-xs text-gray-400">
-																<p>Created {formatDateTime(account.createdAt)}</p>
-															</div>
-														</div>
-													);
-												})
-											)}
+											<AccountsList accounts={serializedAccounts} currencies={currencies} />
 										</CardContent>
 									</Card>
 								</section>
