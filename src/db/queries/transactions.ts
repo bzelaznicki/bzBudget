@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
 import { transactions, currencies, categories } from "../schema";
 
@@ -294,4 +294,54 @@ export async function deleteUserTransaction(userId: string, transactionId: strin
 	const res = await db.update(transactions).set({ updatedAt: timestamp, deletedAt: timestamp }).where(and(eq(transactions.usersId, userId), (eq(transactions.id, transactionId)))).returning();
 
 	return res[0] ?? null;
+}
+
+export interface GetTransactionCountsPerCategoryArgs {
+	userId: string;
+	dateFrom?: Date;
+	dateTo?: Date;
+}
+
+export interface TransactionCountsPerCategory {
+	date: string;
+	categoryId: string | null;
+	categoryName: string | null;
+	count: number;
+}
+
+export async function getTransactionCountsPerCategory(
+	args: GetTransactionCountsPerCategoryArgs,
+): Promise<TransactionCountsPerCategory[]> {
+	const dateTo = args.dateTo ?? new Date();
+	const dateFrom =
+		args.dateFrom ?? new Date(dateTo.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const bookedDate = sql<string>`date(${transactions.bookedAt})`;
+
+	const filters = [
+		eq(transactions.usersId, args.userId),
+		gte(transactions.bookedAt, dateFrom),
+		lte(transactions.bookedAt, dateTo),
+		isNull(transactions.deletedAt),
+	];
+	const whereClause = and(...filters);
+
+	const stats = await db
+		.select({
+			date: bookedDate,
+			categoryId: transactions.categoriesId,
+			categoryName: categories.name,
+			count: count(),
+		})
+		.from(transactions)
+		.leftJoin(categories, eq(categories.id, transactions.categoriesId))
+		.where(whereClause)
+		.groupBy(bookedDate, transactions.categoriesId, categories.name)
+		.orderBy(asc(bookedDate), asc(categories.name));
+
+	return stats.map((row) => ({
+		date: row.date,
+		categoryId: row.categoryId,
+		categoryName: row.categoryName,
+		count: Number(row.count),
+	}));
 }
