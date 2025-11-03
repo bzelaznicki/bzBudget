@@ -35,7 +35,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { transactionFormSchema, type TransactionFormValues } from "@/lib/validation/transactions";
+import {
+	parseTransactionAmount,
+	transactionFormSchema,
+	type TransactionFormValues,
+} from "@/lib/validation/transactions";
 
 type TransactionMetaResponse = {
 	accounts: BankAccountResponse[];
@@ -131,8 +135,10 @@ export function TransactionDialog({
 
 	const onSubmit = React.useCallback(
 		async (values: TransactionFormValues) => {
-			const amountNumber = Number(values.amount);
-			if (Number.isNaN(amountNumber)) {
+			let amountNumber: number;
+			try {
+				amountNumber = parseTransactionAmount(values.amount);
+			} catch {
 				toast.error("Amount must be a valid number");
 				return;
 			}
@@ -294,9 +300,7 @@ export function TransactionDialog({
 											<FormControl>
 												<Input
 													{...field}
-													type="number"
-													step="0.01"
-													min="0"
+													type="text"
 													inputMode="decimal"
 													placeholder="0.00"
 													disabled={isSubmitting}
