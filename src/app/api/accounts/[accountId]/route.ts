@@ -14,7 +14,7 @@ export async function DELETE(_req: Request, context: { params: Promise<{ account
 		try {
 			const res = await deleteUserBankAccount(session.user.id, accountId);
 			if (!res) return respondWithError(404, "Account not found");
-			respondWithJSON(204);
+			return respondWithJSON(204);
 		} catch (err) {
 			return respondWithError(500, "Error deleting account", err);
 		}
