@@ -93,14 +93,20 @@ export const bankAccounts = pgTable("bank_accounts", {
 	deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const categories = pgTable("categories", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	type: categoriesTypeEnum("type").notNull().default("system"),
-	usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
-	createdAt: timestamp("created_at").defaultNow(),
-	updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const categories = pgTable(
+	"categories",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		type: categoriesTypeEnum("type").notNull().default("system"),
+		usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow(),
+		updatedAt: timestamp("updated_at").defaultNow(),
+	},
+	(table) => ({
+		nameUsersUnique: uniqueIndex("categories_name_users_id_unique").on(table.name, table.usersId),
+	}),
+);
 
 export const transactions = pgTable(
 	"transactions",

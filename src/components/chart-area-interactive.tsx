@@ -70,13 +70,7 @@ const METRIC_LABELS: Record<ChartMetric, string> = {
 	amount: "Total amount",
 };
 
-const CATEGORY_COLORS = [
-	"var(--chart-1)",
-	"var(--chart-2)",
-	"var(--chart-3)",
-	"var(--chart-4)",
-	"var(--chart-5)",
-];
+const CATEGORY_COLORS = Array.from({ length: 18 }, (_, index) => `var(--chart-${index + 1})`);
 
 function formatDate(date: Date) {
 	const formatted = new Date(date);

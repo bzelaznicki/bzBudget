@@ -1,9 +1,10 @@
 import "dotenv/config";
 
 import { db } from "@/db/db";
-import { currencies } from "@/db/schema";
+import { currencies, categories } from "@/db/schema";
 
 type CurrencyInsert = typeof currencies.$inferInsert;
+type CategoryInsert = typeof categories.$inferInsert;
 
 const currencySeed: CurrencyInsert[] = [
 	{ name: "United Arab Emirates Dirham", isoCode: "AED", symbol: "د.إ", position: "before" },
@@ -172,12 +173,40 @@ const currencySeed: CurrencyInsert[] = [
 	{ name: "Zimbabwean Dollar", isoCode: "ZWL", symbol: "Z$", position: "before" },
 ];
 
+const categoriesSeed: CategoryInsert[] = [
+	{ name: "Housing & Utilities", type: "system" },
+	{ name: "Groceries", type: "system" },
+	{ name: "Dining Out", type: "system" },
+	{ name: "Transport", type: "system" },
+	{ name: "Health & Beauty", type: "system" },
+	{ name: "Entertainment", type: "system" },
+	{ name: "Subscriptions & Media", type: "system" },
+	{ name: "Travel", type: "system" },
+	{ name: "Hobbies", type: "system" },
+	{ name: "Clothing & Accessories", type: "system" },
+	{ name: "Home & Supplies", type: "system" },
+	{ name: "Repairs & Maintenance", type: "system" },
+	{ name: "Finance & Fees", type: "system" },
+	{ name: "Gifts & Donations", type: "system" },
+	{ name: "Pets", type: "system" },
+	{ name: "Education & Learning", type: "system" },
+	{ name: "Technology & Gadgets", type: "system" },
+	{ name: "Other / Miscellaneous", type: "system" },
+];
+
+
 async function main() {
 	await db.insert(currencies).values(currencySeed).onConflictDoNothing({
 		target: currencies.isoCode,
 	});
 
 	console.log(`Seeded ${currencySeed.length} currencies`);
+
+	await db.insert(categories).values(categoriesSeed).onConflictDoNothing({
+		target: [categories.name, categories.usersId],
+	});
+
+	console.log(`Seeded ${categoriesSeed.length} categories`);
 }
 
 main()
