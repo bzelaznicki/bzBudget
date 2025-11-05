@@ -12,12 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	ChartConfig,
-	ChartContainer,
-	ChartTooltip,
-	ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
 	Select,
 	SelectContent,
@@ -29,117 +24,132 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const description = "An interactive area chart";
 
-const chartData = [
-	{ date: "2024-04-01", desktop: 222, mobile: 150 },
-	{ date: "2024-04-02", desktop: 97, mobile: 180 },
-	{ date: "2024-04-03", desktop: 167, mobile: 120 },
-	{ date: "2024-04-04", desktop: 242, mobile: 260 },
-	{ date: "2024-04-05", desktop: 373, mobile: 290 },
-	{ date: "2024-04-06", desktop: 301, mobile: 340 },
-	{ date: "2024-04-07", desktop: 245, mobile: 180 },
-	{ date: "2024-04-08", desktop: 409, mobile: 320 },
-	{ date: "2024-04-09", desktop: 59, mobile: 110 },
-	{ date: "2024-04-10", desktop: 261, mobile: 190 },
-	{ date: "2024-04-11", desktop: 327, mobile: 350 },
-	{ date: "2024-04-12", desktop: 292, mobile: 210 },
-	{ date: "2024-04-13", desktop: 342, mobile: 380 },
-	{ date: "2024-04-14", desktop: 137, mobile: 220 },
-	{ date: "2024-04-15", desktop: 120, mobile: 170 },
-	{ date: "2024-04-16", desktop: 138, mobile: 190 },
-	{ date: "2024-04-17", desktop: 446, mobile: 360 },
-	{ date: "2024-04-18", desktop: 364, mobile: 410 },
-	{ date: "2024-04-19", desktop: 243, mobile: 180 },
-	{ date: "2024-04-20", desktop: 89, mobile: 150 },
-	{ date: "2024-04-21", desktop: 137, mobile: 200 },
-	{ date: "2024-04-22", desktop: 224, mobile: 170 },
-	{ date: "2024-04-23", desktop: 138, mobile: 230 },
-	{ date: "2024-04-24", desktop: 387, mobile: 290 },
-	{ date: "2024-04-25", desktop: 215, mobile: 250 },
-	{ date: "2024-04-26", desktop: 75, mobile: 130 },
-	{ date: "2024-04-27", desktop: 383, mobile: 420 },
-	{ date: "2024-04-28", desktop: 122, mobile: 180 },
-	{ date: "2024-04-29", desktop: 315, mobile: 240 },
-	{ date: "2024-04-30", desktop: 454, mobile: 380 },
-	{ date: "2024-05-01", desktop: 165, mobile: 220 },
-	{ date: "2024-05-02", desktop: 293, mobile: 310 },
-	{ date: "2024-05-03", desktop: 247, mobile: 190 },
-	{ date: "2024-05-04", desktop: 385, mobile: 420 },
-	{ date: "2024-05-05", desktop: 481, mobile: 390 },
-	{ date: "2024-05-06", desktop: 498, mobile: 520 },
-	{ date: "2024-05-07", desktop: 388, mobile: 300 },
-	{ date: "2024-05-08", desktop: 149, mobile: 210 },
-	{ date: "2024-05-09", desktop: 227, mobile: 180 },
-	{ date: "2024-05-10", desktop: 293, mobile: 330 },
-	{ date: "2024-05-11", desktop: 335, mobile: 270 },
-	{ date: "2024-05-12", desktop: 197, mobile: 240 },
-	{ date: "2024-05-13", desktop: 197, mobile: 160 },
-	{ date: "2024-05-14", desktop: 448, mobile: 490 },
-	{ date: "2024-05-15", desktop: 473, mobile: 380 },
-	{ date: "2024-05-16", desktop: 338, mobile: 400 },
-	{ date: "2024-05-17", desktop: 499, mobile: 420 },
-	{ date: "2024-05-18", desktop: 315, mobile: 350 },
-	{ date: "2024-05-19", desktop: 235, mobile: 180 },
-	{ date: "2024-05-20", desktop: 177, mobile: 230 },
-	{ date: "2024-05-21", desktop: 82, mobile: 140 },
-	{ date: "2024-05-22", desktop: 81, mobile: 120 },
-	{ date: "2024-05-23", desktop: 252, mobile: 290 },
-	{ date: "2024-05-24", desktop: 294, mobile: 220 },
-	{ date: "2024-05-25", desktop: 201, mobile: 250 },
-	{ date: "2024-05-26", desktop: 213, mobile: 170 },
-	{ date: "2024-05-27", desktop: 420, mobile: 460 },
-	{ date: "2024-05-28", desktop: 233, mobile: 190 },
-	{ date: "2024-05-29", desktop: 78, mobile: 130 },
-	{ date: "2024-05-30", desktop: 340, mobile: 280 },
-	{ date: "2024-05-31", desktop: 178, mobile: 230 },
-	{ date: "2024-06-01", desktop: 178, mobile: 200 },
-	{ date: "2024-06-02", desktop: 470, mobile: 410 },
-	{ date: "2024-06-03", desktop: 103, mobile: 160 },
-	{ date: "2024-06-04", desktop: 439, mobile: 380 },
-	{ date: "2024-06-05", desktop: 88, mobile: 140 },
-	{ date: "2024-06-06", desktop: 294, mobile: 250 },
-	{ date: "2024-06-07", desktop: 323, mobile: 370 },
-	{ date: "2024-06-08", desktop: 385, mobile: 320 },
-	{ date: "2024-06-09", desktop: 438, mobile: 480 },
-	{ date: "2024-06-10", desktop: 155, mobile: 200 },
-	{ date: "2024-06-11", desktop: 92, mobile: 150 },
-	{ date: "2024-06-12", desktop: 492, mobile: 420 },
-	{ date: "2024-06-13", desktop: 81, mobile: 130 },
-	{ date: "2024-06-14", desktop: 426, mobile: 380 },
-	{ date: "2024-06-15", desktop: 307, mobile: 350 },
-	{ date: "2024-06-16", desktop: 371, mobile: 310 },
-	{ date: "2024-06-17", desktop: 475, mobile: 520 },
-	{ date: "2024-06-18", desktop: 107, mobile: 170 },
-	{ date: "2024-06-19", desktop: 341, mobile: 290 },
-	{ date: "2024-06-20", desktop: 408, mobile: 450 },
-	{ date: "2024-06-21", desktop: 169, mobile: 210 },
-	{ date: "2024-06-22", desktop: 317, mobile: 270 },
-	{ date: "2024-06-23", desktop: 480, mobile: 530 },
-	{ date: "2024-06-24", desktop: 132, mobile: 180 },
-	{ date: "2024-06-25", desktop: 141, mobile: 190 },
-	{ date: "2024-06-26", desktop: 434, mobile: 380 },
-	{ date: "2024-06-27", desktop: 448, mobile: 490 },
-	{ date: "2024-06-28", desktop: 149, mobile: 200 },
-	{ date: "2024-06-29", desktop: 103, mobile: 160 },
-	{ date: "2024-06-30", desktop: 446, mobile: 400 },
+type TimeRange = "7d" | "30d" | "90d";
+
+type TransactionType = "incoming" | "outgoing";
+type ChartMetric = "count" | "amount";
+
+type TransactionStatisticsResponse = {
+	date: string;
+	categoryId: string | null;
+	categoryName: string | null;
+	count: number;
+	totalAmount: number;
+};
+
+type ChartSeries = {
+	key: string;
+	label: string;
+	color: string;
+};
+
+type ChartRow = {
+	date: string;
+	[key: string]: number | string;
+};
+
+const TIME_RANGE_DAYS: Record<TimeRange, number> = {
+	"7d": 7,
+	"30d": 30,
+	"90d": 90,
+};
+
+const TIME_RANGE_LABELS: Record<TimeRange, string> = {
+	"7d": "Last 7 days",
+	"30d": "Last 30 days",
+	"90d": "Last 3 months",
+};
+
+const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+	incoming: "Incoming",
+	outgoing: "Outgoing",
+};
+
+const METRIC_LABELS: Record<ChartMetric, string> = {
+	count: "Transaction count",
+	amount: "Total amount",
+};
+
+const CATEGORY_COLORS = [
+	"var(--chart-1)",
+	"var(--chart-2)",
+	"var(--chart-3)",
+	"var(--chart-4)",
+	"var(--chart-5)",
 ];
 
-const chartConfig = {
-	visitors: {
-		label: "Visitors",
-	},
-	desktop: {
-		label: "Desktop",
-		color: "var(--primary)",
-	},
-	mobile: {
-		label: "Mobile",
-		color: "var(--primary)",
-	},
-} satisfies ChartConfig;
+function formatDate(date: Date) {
+	const formatted = new Date(date);
+	formatted.setUTCHours(0, 0, 0, 0);
+	return formatted.toISOString().split("T")[0] ?? "";
+}
+
+function computeDateRange(range: TimeRange) {
+	const now = new Date();
+	now.setUTCHours(0, 0, 0, 0);
+	const dateTo = now;
+	const dateFrom = new Date(now);
+	dateFrom.setDate(dateFrom.getDate() - (TIME_RANGE_DAYS[range] - 1));
+	return { dateFrom, dateTo };
+}
+
+function enumerateDates(dateFrom: Date, dateTo: Date) {
+	const dates: string[] = [];
+	const current = new Date(dateFrom);
+	while (current <= dateTo) {
+		dates.push(formatDate(current));
+		current.setDate(current.getDate() + 1);
+	}
+	return dates;
+}
+
+function buildChartData(
+	statistics: TransactionStatisticsResponse[],
+	dateFrom: Date,
+	dateTo: Date,
+	metric: ChartMetric,
+): { rows: ChartRow[]; series: ChartSeries[] } {
+	const categoryMap = new Map<string, ChartSeries>();
+	const totals = new Map<string, Record<string, number>>();
+
+	for (const stat of statistics) {
+		const categoryKey = `category-${stat.categoryId ?? "uncategorized"}`;
+		if (!categoryMap.has(categoryKey)) {
+			const colorIndex = categoryMap.size % CATEGORY_COLORS.length;
+			categoryMap.set(categoryKey, {
+				key: categoryKey,
+				label: stat.categoryName ?? "Uncategorized",
+				color: CATEGORY_COLORS[colorIndex],
+			});
+		}
+		const value = metric === "amount" ? stat.totalAmount : stat.count;
+		const dateTotals = totals.get(stat.date) ?? {};
+		dateTotals[categoryKey] = (dateTotals[categoryKey] ?? 0) + value;
+		totals.set(stat.date, dateTotals);
+	}
+
+	const sortedDates = enumerateDates(dateFrom, dateTo);
+	const rows: ChartRow[] = sortedDates.map((date) => {
+		const rowTotals = totals.get(date) ?? {};
+		const row: ChartRow = { date };
+		categoryMap.forEach((series) => {
+			row[series.key] = rowTotals[series.key] ?? 0;
+		});
+		return row;
+	});
+
+	return { rows, series: Array.from(categoryMap.values()) };
+}
 
 export function ChartAreaInteractive() {
 	const isMobile = useIsMobile();
-	const [timeRange, setTimeRange] = React.useState("90d");
+	const [timeRange, setTimeRange] = React.useState<TimeRange>("7d");
+	const [transactionType, setTransactionType] = React.useState<TransactionType>("outgoing");
+	const [metric, setMetric] = React.useState<ChartMetric>("amount");
+	const [statistics, setStatistics] = React.useState<TransactionStatisticsResponse[]>([]);
+	const [rangeDates, setRangeDates] = React.useState<{ dateFrom: Date; dateTo: Date } | null>(null);
+	const [isLoading, setIsLoading] = React.useState<boolean>(true);
+	const [error, setError] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		if (isMobile) {
@@ -147,33 +157,114 @@ export function ChartAreaInteractive() {
 		}
 	}, [isMobile]);
 
-	const filteredData = chartData.filter((item) => {
-		const date = new Date(item.date);
-		const referenceDate = new Date("2024-06-30");
-		let daysToSubtract = 90;
-		if (timeRange === "30d") {
-			daysToSubtract = 30;
-		} else if (timeRange === "7d") {
-			daysToSubtract = 7;
+	React.useEffect(() => {
+		const controller = new AbortController();
+		const { dateFrom, dateTo } = computeDateRange(timeRange);
+		setRangeDates({
+			dateFrom: new Date(dateFrom),
+			dateTo: new Date(dateTo),
+		});
+		const dateFromParam = formatDate(dateFrom);
+		const dateToParam = formatDate(dateTo);
+
+		async function loadStatistics() {
+			setIsLoading(true);
+			setError(null);
+
+			try {
+				const params = new URLSearchParams({
+					dateFrom: dateFromParam,
+					dateTo: dateToParam,
+				});
+				params.set("type", transactionType);
+				const response = await fetch(`/api/transactions/statistics?${params.toString()}`, {
+					signal: controller.signal,
+				});
+				if (!response.ok) {
+					const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+					throw new Error(payload?.error ?? "Error fetching statistics");
+				}
+				const data = (await response.json()) as TransactionStatisticsResponse[];
+				if (!Array.isArray(data)) {
+					throw new Error("Unexpected statistics response");
+				}
+				const normalized = data.map((item) => ({
+					...item,
+					count: Number(item.count ?? 0),
+					totalAmount: Number(item.totalAmount ?? 0),
+				}));
+				if (!controller.signal.aborted) {
+					setStatistics(normalized);
+				}
+			} catch (err) {
+				if (controller.signal.aborted) {
+					return;
+				}
+				const message = err instanceof Error ? err.message : "Error fetching statistics";
+				setStatistics([]);
+				setError(message);
+			} finally {
+				if (!controller.signal.aborted) {
+					setIsLoading(false);
+				}
+			}
 		}
-		const startDate = new Date(referenceDate);
-		startDate.setDate(startDate.getDate() - daysToSubtract);
-		return date >= startDate;
-	});
+
+		void loadStatistics();
+
+		return () => {
+			controller.abort();
+		};
+	}, [timeRange, transactionType]);
+
+	const chartComputation = React.useMemo(() => {
+		if (!rangeDates) {
+			return { rows: [] as ChartRow[], series: [] as ChartSeries[] };
+		}
+		return buildChartData(statistics, rangeDates.dateFrom, rangeDates.dateTo, metric);
+	}, [statistics, rangeDates, metric]);
+
+	const chartRows = chartComputation.rows;
+	const series = chartComputation.series;
+
+	const chartConfig = React.useMemo<ChartConfig>(() => {
+		return series.reduce((acc, current) => {
+			acc[current.key] = {
+				label: current.label,
+				color: current.color,
+			};
+			return acc;
+		}, {} as ChartConfig);
+	}, [series]);
+
+	const timeRangeLabel = TIME_RANGE_LABELS[timeRange];
+	const typeLabel = TRANSACTION_TYPE_LABELS[transactionType];
+	const typeLabelLower = typeLabel.toLowerCase();
+	const metricDescription = metric === "count" ? "transaction counts" : "total amounts";
+	const metricShortLabel = metric === "count" ? "counts" : "amounts";
 
 	return (
 		<Card className="@container/card">
 			<CardHeader>
-				<CardTitle>Total Visitors</CardTitle>
+				<CardTitle>Transactions by Category</CardTitle>
 				<CardDescription>
-					<span className="hidden @[540px]/card:block">Total for the last 3 months</span>
-					<span className="@[540px]/card:hidden">Last 3 months</span>
+					<span className="hidden @[540px]/card:block">
+						Aggregated {typeLabelLower} {metricDescription} for {timeRangeLabel.toLowerCase()}
+					</span>
+					<span className="@[540px]/card:hidden">
+						{typeLabel} {metricShortLabel} - {timeRangeLabel}
+					</span>
 				</CardDescription>
-				<CardAction>
+				<CardAction className="flex flex-col gap-2 @[767px]/card:flex-row @[767px]/card:flex-wrap @[767px]/card:justify-end">
 					<ToggleGroup
 						type="single"
 						value={timeRange}
-						onValueChange={setTimeRange}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setTimeRange(value as TimeRange);
+						}}
 						variant="outline"
 						className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
 					>
@@ -181,13 +272,21 @@ export function ChartAreaInteractive() {
 						<ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
 						<ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
 					</ToggleGroup>
-					<Select value={timeRange} onValueChange={setTimeRange}>
+					<Select
+						value={timeRange}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setTimeRange(value as TimeRange);
+						}}
+					>
 						<SelectTrigger
-							className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
+							className="flex w-full min-w-[9rem] **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
 							size="sm"
-							aria-label="Select a value"
+							aria-label="Select a time range"
 						>
-							<SelectValue placeholder="Last 3 months" />
+							<SelectValue placeholder={TIME_RANGE_LABELS["7d"]} />
 						</SelectTrigger>
 						<SelectContent className="rounded-xl">
 							<SelectItem value="90d" className="rounded-lg">
@@ -201,20 +300,98 @@ export function ChartAreaInteractive() {
 							</SelectItem>
 						</SelectContent>
 					</Select>
+					<ToggleGroup
+						type="single"
+						value={transactionType}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setTransactionType(value as TransactionType);
+						}}
+						variant="outline"
+						className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
+					>
+						<ToggleGroupItem value="outgoing">Outgoing</ToggleGroupItem>
+						<ToggleGroupItem value="incoming">Incoming</ToggleGroupItem>
+					</ToggleGroup>
+					<Select
+						value={transactionType}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setTransactionType(value as TransactionType);
+						}}
+					>
+						<SelectTrigger
+							className="flex w-full min-w-[9rem] **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
+							size="sm"
+							aria-label="Select transaction type"
+						>
+							<SelectValue placeholder="Outgoing transactions" />
+						</SelectTrigger>
+						<SelectContent className="rounded-xl">
+							<SelectItem value="outgoing" className="rounded-lg">
+								Outgoing transactions
+							</SelectItem>
+							<SelectItem value="incoming" className="rounded-lg">
+								Incoming transactions
+							</SelectItem>
+						</SelectContent>
+					</Select>
+					<ToggleGroup
+						type="single"
+						value={metric}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setMetric(value as ChartMetric);
+						}}
+						variant="outline"
+						className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
+					>
+						<ToggleGroupItem value="count">Count</ToggleGroupItem>
+						<ToggleGroupItem value="amount">Amount</ToggleGroupItem>
+					</ToggleGroup>
+					<Select
+						value={metric}
+						onValueChange={(value) => {
+							if (!value) {
+								return;
+							}
+							setMetric(value as ChartMetric);
+						}}
+					>
+						<SelectTrigger
+							className="flex w-full min-w-[9rem] **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
+							size="sm"
+							aria-label="Select a metric"
+						>
+							<SelectValue placeholder={METRIC_LABELS.amount} />
+						</SelectTrigger>
+						<SelectContent className="rounded-xl">
+							<SelectItem value="count" className="rounded-lg">
+								{METRIC_LABELS.count}
+							</SelectItem>
+							<SelectItem value="amount" className="rounded-lg">
+								{METRIC_LABELS.amount}
+							</SelectItem>
+						</SelectContent>
+					</Select>
 				</CardAction>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-					<AreaChart data={filteredData}>
+					<AreaChart data={chartRows}>
 						<defs>
-							<linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-desktop)" stopOpacity={1.0} />
-								<stop offset="95%" stopColor="var(--color-desktop)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-mobile)" stopOpacity={0.8} />
-								<stop offset="95%" stopColor="var(--color-mobile)" stopOpacity={0.1} />
-							</linearGradient>
+							{series.map((item) => (
+								<linearGradient key={item.key} id={`fill-${item.key}`} x1="0" y1="0" x2="0" y2="1">
+									<stop offset="5%" stopColor={`var(--color-${item.key})`} stopOpacity={0.8} />
+									<stop offset="95%" stopColor={`var(--color-${item.key})`} stopOpacity={0.1} />
+								</linearGradient>
+							))}
 						</defs>
 						<CartesianGrid vertical={false} />
 						<XAxis
@@ -245,22 +422,24 @@ export function ChartAreaInteractive() {
 								/>
 							}
 						/>
-						<Area
-							dataKey="mobile"
-							type="natural"
-							fill="url(#fillMobile)"
-							stroke="var(--color-mobile)"
-							stackId="a"
-						/>
-						<Area
-							dataKey="desktop"
-							type="natural"
-							fill="url(#fillDesktop)"
-							stroke="var(--color-desktop)"
-							stackId="a"
-						/>
+						{series.map((item) => (
+							<Area
+								key={item.key}
+								dataKey={item.key}
+								type="natural"
+								fill={`url(#fill-${item.key})`}
+								stroke={`var(--color-${item.key})`}
+								stackId="a"
+							/>
+						))}
 					</AreaChart>
 				</ChartContainer>
+				{!isLoading && !error && !series.length ? (
+					<p className="text-muted-foreground mt-4 text-sm">
+						No {typeLabelLower} transactions found for the selected period.
+					</p>
+				) : null}
+				{error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
 			</CardContent>
 		</Card>
 	);

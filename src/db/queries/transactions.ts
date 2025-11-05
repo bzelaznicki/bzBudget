@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull, sql, sum } from "drizzle-orm";
 import { db } from "../db";
 import { transactions, currencies, categories } from "../schema";
 
@@ -300,6 +300,7 @@ export interface GetTransactionCountsPerCategoryArgs {
 	userId: string;
 	dateFrom?: Date;
 	dateTo?: Date;
+	type?: "incoming" | "outgoing";
 }
 
 export interface TransactionCountsPerCategory {
@@ -307,6 +308,7 @@ export interface TransactionCountsPerCategory {
 	categoryId: string | null;
 	categoryName: string | null;
 	count: number;
+	totalAmount: number;
 }
 
 export async function getTransactionCountsPerCategory(
@@ -323,6 +325,9 @@ export async function getTransactionCountsPerCategory(
 		lte(transactions.bookedAt, dateTo),
 		isNull(transactions.deletedAt),
 	];
+	if (args.type) {
+		filters.push(eq(transactions.type, args.type));
+	}
 	const whereClause = and(...filters);
 
 	const stats = await db
@@ -331,6 +336,7 @@ export async function getTransactionCountsPerCategory(
 			categoryId: transactions.categoriesId,
 			categoryName: categories.name,
 			count: count(),
+			totalAmount: sum(transactions.amount),
 		})
 		.from(transactions)
 		.leftJoin(categories, eq(categories.id, transactions.categoriesId))
@@ -343,5 +349,6 @@ export async function getTransactionCountsPerCategory(
 		categoryId: row.categoryId,
 		categoryName: row.categoryName,
 		count: Number(row.count),
+		totalAmount: Number(row.totalAmount ?? 0),
 	}));
 }
