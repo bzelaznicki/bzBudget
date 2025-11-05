@@ -1,0 +1,189 @@
+import { type ComponentProps } from "react";
+import {
+	IconCamera,
+	IconChartBar,
+	IconDashboard,
+	IconDatabase,
+	IconFileAi,
+	IconFileDescription,
+	IconFileWord,
+	IconHelp,
+	IconCreditCard,
+	IconCoins,
+	IconReport,
+	IconSearch,
+	IconSettings,
+	IconBuildingBank,
+	IconBug
+} from "@tabler/icons-react";
+
+import { NavDocuments } from "@/components/nav-documents";
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
+const data = {
+	user: {
+		name: "shadcn",
+		email: "m@example.com",
+		avatar: "/avatars/shadcn.jpg",
+	},
+	navMain: [
+		{
+			title: "Dashboard",
+			url: "/dashboard",
+			icon: <IconDashboard />,
+		},
+		{
+			title: "Transactions",
+			url: "/transactions",
+			icon: <IconCreditCard />,
+		},
+		{
+			title: "Analytics",
+			url: "#",
+			icon: <IconChartBar />,
+		},
+
+	],
+	navClouds: [
+		{
+			title: "Capture",
+			icon: <IconCamera />,
+			isActive: true,
+			url: "#",
+			items: [
+				{
+					title: "Active Proposals",
+					url: "#",
+				},
+				{
+					title: "Archived",
+					url: "#",
+				},
+			],
+		},
+		{
+			title: "Proposal",
+			icon: <IconFileDescription />,
+			url: "#",
+			items: [
+				{
+					title: "Active Proposals",
+					url: "#",
+				},
+				{
+					title: "Archived",
+					url: "#",
+				},
+			],
+		},
+		{
+			title: "Prompts",
+			icon: <IconFileAi />,
+			url: "#",
+			items: [
+				{
+					title: "Active Proposals",
+					url: "#",
+				},
+				{
+					title: "Archived",
+					url: "#",
+				},
+			],
+		},
+	],
+	navSecondary: [
+		{
+			title: "Accounts",
+			url: "/settings/accounts",
+			icon: <IconBuildingBank />,
+		},
+		{
+			title: "Settings",
+			url: "#",
+			icon: <IconSettings />,
+		},
+		{
+			title: "Get Help",
+			url: "#",
+			icon: <IconHelp />,
+		},
+		{
+			title: "Search",
+			url: "#",
+			icon: <IconSearch />,
+		},
+	],
+	documents: [
+		{
+			name: "Data Library",
+			url: "#",
+			icon: <IconDatabase />,
+		},
+		{
+			name: "Reports",
+			url: "#",
+			icon: <IconReport />,
+		},
+		{
+			name: "Word Assistant",
+			url: "#",
+			icon: <IconFileWord />,
+		},
+	],
+};
+
+export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+	const session = await auth.api.getSession({ headers: await headers() });
+
+	if (!session) {
+		redirect("/login");
+	}
+
+	const user = session.user;
+
+	return (
+		<Sidebar collapsible="offcanvas" {...props}>
+			<SidebarHeader>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+							<a href="/dashboard">
+								<IconCoins className="!size-5" />
+								<span className="text-base font-semibold">bzBudget</span>
+							</a>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			</SidebarHeader>
+			<SidebarContent>
+				<NavMain items={data.navMain} />
+				<NavDocuments items={data.documents} />
+				<NavSecondary items={data.navSecondary} className="mt-auto" />
+			</SidebarContent>
+			<SidebarFooter>
+				<NavUser
+					user={{
+						name: user.name,
+						email: user.email,
+						image: user.image ?? null,
+					}}
+				/>
+			</SidebarFooter>
+		</Sidebar>
+	);
+}

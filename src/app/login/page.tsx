@@ -94,8 +94,8 @@ export default function SignIn() {
 								<Checkbox
 									id="remember"
 									checked={rememberMe}
-									onChange={(event) => {
-										setRememberMe(event.target.checked);
+									onCheckedChange={(checked) => {
+										setRememberMe(checked === true);
 									}}
 								/>
 								Remember me
@@ -105,7 +105,7 @@ export default function SignIn() {
 
 						<Button
 							type="button"
-							variant="primary"
+							variant="default"
 							className="w-full"
 							disabled={loading}
 							onClick={async () => {
@@ -126,11 +126,7 @@ export default function SignIn() {
 								);
 							}}
 						>
-							{loading ? (
-								<Loader2 size={16} className="animate-spin" />
-							) : (
-								<span>Sign in</span>
-							)}
+							{loading ? <Loader2 size={16} className="animate-spin" /> : <span>Sign in</span>}
 						</Button>
 					</div>
 				</CardContent>

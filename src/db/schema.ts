@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -12,15 +13,9 @@ import {
 
 export const categoriesTypeEnum = pgEnum("categories_type", ["system", "user"]);
 
-export const currenciesPositionEnum = pgEnum("currenciesPosition", [
-	"before",
-	"after",
-]);
+export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "after"]);
 
-export const transactionsTypeEnum = pgEnum("transaction_type", [
-	"incoming",
-	"outgoing",
-]);
+export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"]);
 
 export const users = pgTable(
 	"users",
@@ -30,18 +25,21 @@ export const users = pgTable(
 		email: text("email").notNull(),
 		emailVerified: boolean("email_verified").notNull().default(false),
 		image: text("image"),
+		defaultCurrenciesId: uuid("default_currencies_id").references(() => currencies.id, {
+			onDelete: "restrict",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => ({
 		emailUnique: uniqueIndex("users_email_unique").on(table.email),
-	})
+	}),
 );
 
 export const currencies = pgTable("currencies", {
 	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	isoCode: text("iso_code").notNull(),
+	name: text("name").notNull().unique(),
+	isoCode: text("iso_code").notNull().unique(),
 	symbol: text("symbol").notNull(),
 	position: currenciesPositionEnum("position").default("after"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -77,7 +75,7 @@ export const accounts = pgTable(
 			table.accountId,
 		),
 		userIdIdx: index("accounts_users_id_idx").on(table.userId),
-	})
+	}),
 );
 
 export const bankAccounts = pgTable("bank_accounts", {
@@ -92,16 +90,23 @@ export const bankAccounts = pgTable("bank_accounts", {
 		.references(() => currencies.id),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+	deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const categories = pgTable("categories", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	type: categoriesTypeEnum("type").notNull().default("system"),
-	usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
-	createdAt: timestamp("created_at").defaultNow(),
-	updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const categories = pgTable(
+	"categories",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		type: categoriesTypeEnum("type").notNull().default("system"),
+		usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow(),
+		updatedAt: timestamp("updated_at").defaultNow(),
+	},
+	(table) => ({
+		nameUsersUnique: uniqueIndex("categories_name_users_id_unique").on(table.name, table.usersId),
+	}),
+);
 
 export const transactions = pgTable(
 	"transactions",
@@ -125,6 +130,7 @@ export const transactions = pgTable(
 		type: transactionsTypeEnum("type").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 	},
 	(table) => ({
 		usersExternalUnique: uniqueIndex("transactions_users_external_unique").on(
@@ -132,7 +138,7 @@ export const transactions = pgTable(
 			table.externalId,
 		),
 		bookedAtIdx: index("transactions_booked_at_idx").on(table.bookedAt),
-	})
+	}),
 );
 
 export const sessions = pgTable(
@@ -153,7 +159,7 @@ export const sessions = pgTable(
 		tokenUnique: uniqueIndex("sessions_token_unique").on(table.token),
 		expiresAtIdx: index("sessions_expires_at_idx").on(table.expiresAt),
 		userIdIdx: index("sessions_users_id_idx").on(table.userId),
-	})
+	}),
 );
 
 export const verifications = pgTable(
@@ -169,5 +175,5 @@ export const verifications = pgTable(
 	(table) => ({
 		identifierIdx: index("verifications_identifier_idx").on(table.identifier),
 		expiresAtIdx: index("verifications_expires_at_idx").on(table.expiresAt),
-	})
+	}),
 );

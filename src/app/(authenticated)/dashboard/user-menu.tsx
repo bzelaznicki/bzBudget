@@ -26,7 +26,7 @@ function initialsFromName(name: string) {
 
 	const first = parts[0]?.charAt(0)?.toUpperCase() ?? "";
 	const last = parts[parts.length - 1]?.charAt(0)?.toUpperCase() ?? "";
-	return (first + last) || "B";
+	return first + last || "B";
 }
 
 function UserAvatar({ name, image }: { name: string; image?: string | null }) {
@@ -35,13 +35,7 @@ function UserAvatar({ name, image }: { name: string; image?: string | null }) {
 	if (image) {
 		return (
 			<div className="relative h-12 w-12 overflow-hidden rounded-full border border-emerald-100">
-				<Image
-					src={image}
-					alt={`${name}'s avatar`}
-					fill
-					sizes="48px"
-					className="object-cover"
-				/>
+				<Image src={image} alt={`${name}'s avatar`} fill sizes="48px" className="object-cover" />
 			</div>
 		);
 	}
@@ -67,7 +61,7 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 					setOpen(false);
 				}
 			}}
-			>
+		>
 			<button
 				type="button"
 				className="flex w-full items-center gap-3 rounded-full border border-emerald-100 bg-white/80 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
@@ -87,7 +81,9 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 			</button>
 			<div
 				className={`absolute right-0 top-full z-20 mt-3 w-72 rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-2xl shadow-emerald-100 backdrop-blur transition duration-200 ${
-					open ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+					open
+						? "pointer-events-auto translate-y-0 opacity-100"
+						: "pointer-events-none -translate-y-1 opacity-0"
 				}`}
 			>
 				<div className="space-y-3 text-sm text-gray-600">
@@ -106,10 +102,10 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 							Manage profile
 						</Link>
 						<Link
-							href="/settings/connections"
+							href="/settings/accounts"
 							className="rounded-xl border border-transparent px-3 py-2 text-left text-sm text-gray-700 transition hover:border-emerald-100 hover:bg-emerald-50/80 hover:text-emerald-700"
 						>
-							Account connections
+							Manage accounts
 						</Link>
 						<Link
 							href="/settings/billing"
@@ -119,8 +115,8 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
 						</Link>
 					</div>
 					<div className="rounded-xl border border-emerald-100 bg-emerald-50/80 p-3 text-xs text-emerald-700">
-						All activity is synced across your devices. Manage secure sessions
-						and sign-ins from the profile area.
+						All activity is synced across your devices. Manage secure sessions and sign-ins from the
+						profile area.
 					</div>
 					<div className="flex justify-end">
 						<SignOutButton />

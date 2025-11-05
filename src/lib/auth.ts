@@ -3,7 +3,6 @@ import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db/db";
 
-
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -20,5 +19,16 @@ export const auth = betterAuth({
 			console.log("Sent reset password");
 		},
 	},
+	user: {
+		additionalFields: {
+			defaultCurrenciesId: {
+				type: "string",
+				required: true,
+				input: true,
+			},
+		},
+	},
 	plugins: [nextCookies()],
 });
+
+export type AppAuthOptions = (typeof auth)["options"];
