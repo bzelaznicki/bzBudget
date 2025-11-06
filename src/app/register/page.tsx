@@ -28,6 +28,8 @@ import Link from "next/link";
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
 import type { CurrencyResponse } from "@/db/queries/currencies";
 
+type SignUpEmailPayload = Parameters<(typeof signUp)["email"]>[0];
+
 export default function SignUp() {
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
@@ -274,15 +276,14 @@ export default function SignUp() {
 									toast.error("Select a default currency before continuing.");
 									return;
 								}
-								type SignUpEmailPayload = Parameters<(typeof signUp)["email"]>[0];
 								const encodedImage = image ? await convertImageToBase64(image) : "";
 								const payload = {
 									email,
 									password,
-									name: `${firstName} ${lastName}`,
+									name: `${firstName} ${lastName}`.trim(),
 									image: encodedImage,
 									defaultCurrenciesId: defaultCurrencyId,
-									callbackURL: "/dashboard",
+									callbackURL: "/login?emailConfirmed=1",
 									fetchOptions: {
 										onResponse: () => {
 											setLoading(false);
@@ -290,15 +291,25 @@ export default function SignUp() {
 										onRequest: () => {
 											setLoading(true);
 										},
-										onError: ({ error }: { error: { message: string } }) => {
-											toast.error(error.message);
+										onError: (ctx) => {
+											toast.error(ctx.error.message);
 										},
 										onSuccess: async () => {
+											toast.success("Account created! Check your inbox to confirm your email.");
 											router.push("/dashboard");
 										},
 									},
 								} as SignUpEmailPayload;
-								await signUp.email(payload);
+								try {
+									await signUp.email(payload);
+								} catch (error) {
+									const message =
+										error instanceof Error && error.message
+											? error.message
+											: "Unable to create your account. Please try again.";
+									toast.error(message);
+									setLoading(false);
+								}
 							}}
 						>
 							{loading ? <Loader2 size={16} className="animate-spin" /> : "Create account"}

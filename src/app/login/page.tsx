@@ -12,17 +12,64 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
+import { toast } from "sonner";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export default function SignIn() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [rememberMe, setRememberMe] = useState(false);
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const pathname = usePathname();
+
+	useEffect(() => {
+		const emailConfirmed = searchParams.get("emailConfirmed");
+		if (emailConfirmed === "1") {
+			toast.success("Email confirmed! You can now sign in.");
+			const nextParams = new URLSearchParams(searchParams.toString());
+			nextParams.delete("emailConfirmed");
+			const query = nextParams.toString();
+			router.replace(query ? `${pathname}?${query}` : pathname);
+		}
+	}, [pathname, router, searchParams]);
+
+	const handleLogin = async () => {
+		try {
+			await signIn.email(
+				{
+					email,
+					password,
+					callbackURL: "/dashboard",
+					rememberMe,
+				},
+				{
+					onRequest: () => {
+						setLoading(true);
+					},
+					onResponse: () => {
+						setLoading(false);
+					},
+					onError: (ctx) => {
+						toast.error(ctx.error.message);
+					},
+				},
+			);
+		} catch (error) {
+			const message =
+				error instanceof Error && error.message
+					? error.message
+					: "Unable to sign in. Please try again.";
+			toast.error(message);
+			setLoading(false);
+		}
+	};
 
 	return (
 		<AuthScaffold
@@ -108,23 +155,7 @@ export default function SignIn() {
 							variant="default"
 							className="w-full"
 							disabled={loading}
-							onClick={async () => {
-								await signIn.email(
-									{
-										email,
-										password,
-										callbackURL: "/dashboard",
-									},
-									{
-										onRequest: () => {
-											setLoading(true);
-										},
-										onResponse: () => {
-											setLoading(false);
-										},
-									},
-								);
-							}}
+							onClick={handleLogin}
 						>
 							{loading ? <Loader2 size={16} className="animate-spin" /> : <span>Sign in</span>}
 						</Button>
