@@ -139,7 +139,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 							<div className="flex items-center">
 								<Label htmlFor="password">Password</Label>
 								<Link
-									href="#"
+									href="/login/reset"
 									className="ml-auto inline-block text-sm text-emerald-600 transition hover:text-emerald-700"
 								>
 									Forgot?
