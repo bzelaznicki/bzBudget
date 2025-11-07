@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { auth } from "@/lib/auth";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -175,8 +176,8 @@ export default async function ManageAccountPage() {
 														Use a strong password that you don’t reuse elsewhere.
 													</p>
 												</div>
-												<Button type="button" variant="outline" className="w-full sm:w-auto">
-													Reset password
+												<Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
+													<Link href="/settings/profile/change-password">Change password</Link>
 												</Button>
 											</div>
 
