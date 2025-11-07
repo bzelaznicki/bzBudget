@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
@@ -60,7 +60,8 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 		}
 	}, [searchParams, shouldShowConfirmationToast]);
 
-	const handleLogin = async () => {
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
 		try {
 			await signIn.email(
 				{
@@ -120,7 +121,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<div className="grid gap-4">
+					<form className="grid gap-4" onSubmit={handleSubmit}>
 						<div className="grid gap-2">
 							<Label htmlFor="email">Email</Label>
 							<Input
@@ -170,16 +171,10 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 							<span className="text-xs text-gray-400">Trusted device recommended</span>
 						</div>
 
-						<Button
-							type="button"
-							variant="default"
-							className="w-full"
-							disabled={loading}
-							onClick={handleLogin}
-						>
+						<Button type="submit" variant="default" className="w-full" disabled={loading}>
 							{loading ? <Loader2 size={16} className="animate-spin" /> : <span>Sign in</span>}
 						</Button>
-					</div>
+					</form>
 				</CardContent>
 				<CardFooter className="border-t border-gray-100 bg-gray-50/60 py-4">
 					<p className="text-sm text-gray-600">
