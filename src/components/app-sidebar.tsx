@@ -14,7 +14,6 @@ import {
 	IconSearch,
 	IconSettings,
 	IconBuildingBank,
-	IconBug
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";

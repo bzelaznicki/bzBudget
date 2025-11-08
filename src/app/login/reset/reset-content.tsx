@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
@@ -20,10 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/router";
 
 export function ResetPasswordContent() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 	const [email, setEmail] = useState("");
 	const [code, setCode] = useState("");
 	const [newPassword, setNewPassword] = useState("");
@@ -77,7 +77,7 @@ export function ResetPasswordContent() {
 				return;
 			}
 			toast.success("Password reset successfully!");
-			useRouter().push("/login");
+			router.push("/login");
 		} finally {
 			setIsResetting(false);
 		}

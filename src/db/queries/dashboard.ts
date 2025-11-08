@@ -289,7 +289,8 @@ const fallbackSummary: DashboardSummary = {
 	currency: { isoCode: "USD", symbol: "$", position: "before" },
 };
 
-export async function getDashboardSummary(_userId: string): Promise<DashboardSummary> {
+export async function getDashboardSummary(userId: string): Promise<DashboardSummary> {
+	void userId;
 	// Simulate the shape of a future asynchronous call while real data hooks
 	// are being implemented.
 	await new Promise((resolve) => setTimeout(resolve, 25));
