@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db/db";
+import { sendConfirmationEmail, sendResetPasswordEmail } from "./inbound";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -15,8 +16,10 @@ export const auth = betterAuth({
 	},
 	emailAndPassword: {
 		enabled: true,
+		requireEmailVerification: true,
 		async sendResetPassword(data, request) {
-			console.log("Sent reset password");
+			void request;
+			await sendResetPasswordEmail(data.user.email, data.user.name, data.url);
 		},
 	},
 	user: {
@@ -27,6 +30,12 @@ export const auth = betterAuth({
 				input: true,
 			},
 		},
+	},
+	emailVerification: {
+		sendVerificationEmail: async ({ user, url }, request) => {
+			void request;
+			await sendConfirmationEmail(user.email, user.name, url);
+		}
 	},
 	plugins: [nextCookies()],
 });

@@ -40,16 +40,6 @@ function formatCurrencyValue(amount: number, currencyCode: string) {
 	}
 }
 
-function formatCurrencyWithSign(amount: number, currencyCode: string) {
-	if (amount === 0) {
-		return formatCurrencyValue(0, currencyCode);
-	}
-
-	const formatted = formatCurrencyValue(Math.abs(amount), currencyCode);
-	const prefix = amount > 0 ? "+" : "-";
-	return `${prefix}${formatted}`;
-}
-
 function percentChange(
 	current: number,
 	previous: number,
