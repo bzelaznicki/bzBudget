@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { PosthogIdentify } from "@/components/posthog-identify";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TransactionEventsProvider } from "@/contexts/transaction-events-context";
 
@@ -13,10 +14,10 @@ export default function AuthenticatedLayout({ children }: { children: ReactNode 
 	return (
 		<SidebarProvider style={SHELL_STYLES}>
 			<TransactionEventsProvider>
+				<PosthogIdentify />
 				<AppSidebar variant="inset" />
 				<SidebarInset>{children}</SidebarInset>
 			</TransactionEventsProvider>
 		</SidebarProvider>
 	);
 }
-
