@@ -1,7 +1,7 @@
 import { PostHog } from "posthog-node";
 
 const SERVER_KEY =
-	process.env.POSTHOG_SERVER_KEY ?? process.env.POSTHOG_API_KEY ?? process.env.NEXT_PUBLIC_POSTHOG_KEY ?? null;
+	process.env.POSTHOG_API_KEY ?? null;
 const SERVER_HOST = process.env.POSTHOG_HOST ?? "https://eu.posthog.com";
 
 export function createServerPosthog() {
