@@ -10,6 +10,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { captureClientEvent } from "@/instrumentation-client";
 
 export function NavSecondary({
 	items,
@@ -21,6 +22,10 @@ export function NavSecondary({
 		icon: ReactNode;
 	}[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+	const handleClick = (destination: string) => {
+		captureClientEvent("nav_clicked", { section: "secondary", destination });
+	};
+
 	return (
 		<SidebarGroup {...props}>
 			<SidebarGroupContent>
@@ -28,7 +33,12 @@ export function NavSecondary({
 					{items.map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton asChild>
-								<a href={item.url}>
+								<a
+									href={item.url}
+									onClick={() => {
+										handleClick(item.url);
+									}}
+								>
 									{item.icon}
 									<span>{item.title}</span>
 								</a>

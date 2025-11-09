@@ -40,6 +40,7 @@ import {
 	transactionFormSchema,
 	type TransactionFormValues,
 } from "@/lib/validation/transactions";
+import { captureClientEvent } from "@/instrumentation-client";
 
 type TransactionMetaResponse = {
 	accounts: BankAccountResponse[];
@@ -163,6 +164,11 @@ export function TransactionDialog({
 				categoriesId: values.categoriesId,
 			};
 
+			captureClientEvent("transaction_create_submitted", {
+				...payload,
+				descriptionLength: normalizedDescription?.length ?? 0,
+			});
+
 			try {
 				const response = await fetch("/api/transactions", {
 					method: "POST",
@@ -181,11 +187,25 @@ export function TransactionDialog({
 				onTransactionCreated(transaction);
 				toast.success("Transaction added");
 
+				captureClientEvent("transaction_create_succeeded", {
+					transactionId: transaction.id,
+					accountsId: transaction.accountsId,
+					currency: transaction.currency.isoCode,
+					hasCategory: Boolean(transaction.categoriesId),
+					type: transaction.type,
+				});
+
 				form.reset(buildDefaultValues(meta));
 				onOpenChange(false);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : "Unable to create transaction";
 				toast.error(message);
+				captureClientEvent("transaction_create_failed", {
+					error: message,
+					accountsId: values.accountsId,
+					categoriesId: values.categoriesId,
+					type: values.type,
+				});
 			}
 		},
 		[form, meta, onOpenChange, onTransactionCreated],

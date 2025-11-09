@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
+import { captureClientEvent } from "@/instrumentation-client";
 
 export function ResetPasswordContent() {
 	const searchParams = useSearchParams();
@@ -48,6 +49,7 @@ export function ResetPasswordContent() {
 	const handleRequestLink = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		setIsRequesting(true);
+		captureClientEvent("password_reset_link_requested");
 
 		try {
 			const { data, error } = await authClient.requestPasswordReset({
@@ -57,9 +59,11 @@ export function ResetPasswordContent() {
 
 			if (error !== null) {
 				toast.error("Error resetting password");
+				captureClientEvent("password_reset_link_failed", { error: error.message });
 				return;
 			}
 			toast.success(data.message);
+			captureClientEvent("password_reset_link_succeeded");
 		} finally {
 			setIsRequesting(false);
 		}
@@ -68,15 +72,18 @@ export function ResetPasswordContent() {
 	const handleResetPassword = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		setIsResetting(true);
+		captureClientEvent("password_reset_submitted");
 
 		try {
 			const { error } = await authClient.resetPassword({ newPassword, token: code });
 
 			if (error) {
 				toast.error(error.message ?? "Failed to reset password");
+				captureClientEvent("password_reset_failed", { error: error.message });
 				return;
 			}
 			toast.success("Password reset successfully!");
+			captureClientEvent("password_reset_succeeded");
 			router.push("/login");
 		} finally {
 			setIsResetting(false);
