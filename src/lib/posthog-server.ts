@@ -23,7 +23,7 @@ export async function captureServerEvent(
 ) {
 	if (!client) return;
 
-	client.capture({
+	return client.capture({
 		distinctId,
 		event,
 		properties,
