@@ -13,4 +13,9 @@ if (typeof window !== "undefined" && POSTHOG_ENABLED && POSTHOG_KEY) {
 	});
 }
 
+export function captureClientEvent(event: string, properties?: Record<string, unknown>) {
+	if (!POSTHOG_ENABLED) return;
+	posthog.capture(event, properties);
+}
+
 export { posthog };

@@ -20,6 +20,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { captureClientEvent } from "@/instrumentation-client";
 
 export function NavDocuments({
 	items,
@@ -31,6 +32,9 @@ export function NavDocuments({
 	}[];
 }) {
 	const { isMobile } = useSidebar();
+	const trackDocClick = (destination: string) => {
+		captureClientEvent("nav_clicked", { section: "documents", destination });
+	};
 
 	return (
 		<SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -39,7 +43,12 @@ export function NavDocuments({
 				{items.map((item) => (
 					<SidebarMenuItem key={item.name}>
 						<SidebarMenuButton asChild>
-							<a href={item.url}>
+							<a
+								href={item.url}
+								onClick={() => {
+									trackDocClick(item.url);
+								}}
+							>
 								{item.icon}
 								<span>{item.name}</span>
 							</a>
@@ -74,7 +83,10 @@ export function NavDocuments({
 					</SidebarMenuItem>
 				))}
 				<SidebarMenuItem>
-					<SidebarMenuButton className="text-sidebar-foreground/70">
+					<SidebarMenuButton
+						className="text-sidebar-foreground/70"
+						onClick={() => trackDocClick("more")}
+					>
 						<IconDots className="text-sidebar-foreground/70" />
 						<span>More</span>
 					</SidebarMenuButton>

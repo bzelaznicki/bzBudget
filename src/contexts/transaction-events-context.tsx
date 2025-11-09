@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import type { TransactionResponse } from "@/db/queries/transactions";
-import { POSTHOG_ENABLED, posthog } from "@/instrumentation-client";
+import { captureClientEvent } from "@/instrumentation-client";
 
 type TransactionListener = (transaction: TransactionResponse) => void;
 
@@ -25,19 +25,17 @@ export function TransactionEventsProvider({ children }: { children: React.ReactN
 	}, []);
 
 	const emitTransactionCreated = React.useCallback((transaction: TransactionResponse) => {
-		if (POSTHOG_ENABLED) {
-			const amount = Number(transaction.amount);
-			posthog.capture("transaction_created", {
-				transactionId: transaction.id,
-				accountId: transaction.accountsId,
-				amount: Number.isFinite(amount) ? amount : undefined,
-				currency: transaction.currency?.isoCode,
-				categoryId: transaction.categoriesId,
-				hasCategory: Boolean(transaction.categoriesId),
-				externalId: transaction.externalId,
-				type: transaction.type,
-			});
-		}
+		const amount = Number(transaction.amount);
+		captureClientEvent("transaction_created", {
+			transactionId: transaction.id,
+			accountId: transaction.accountsId,
+			amount: Number.isFinite(amount) ? amount : undefined,
+			currency: transaction.currency?.isoCode,
+			categoryId: transaction.categoriesId,
+			hasCategory: Boolean(transaction.categoriesId),
+			externalId: transaction.externalId,
+			type: transaction.type,
+		});
 
 		for (const listener of listenersRef.current) {
 			listener(transaction);

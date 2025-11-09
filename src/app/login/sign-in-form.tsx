@@ -19,6 +19,7 @@ import Link from "next/link";
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
+import { captureClientEvent } from "@/instrumentation-client";
 
 interface SignInFormProps {
 	emailConfirmed?: boolean;
@@ -62,6 +63,9 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
+		captureClientEvent("sign_in_submitted", {
+			rememberMe,
+		});
 		try {
 			await signIn.email(
 				{
@@ -79,9 +83,16 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 					},
 					onError: (ctx) => {
 						toast.error(ctx.error.message);
+						captureClientEvent("sign_in_failed", {
+							error: ctx.error.message,
+							code: ctx.error.status,
+						});
 					},
 				},
 			);
+			captureClientEvent("sign_in_succeeded", {
+				rememberMe,
+			});
 		} catch (error) {
 			const message =
 				error instanceof Error && error.message
@@ -89,6 +100,9 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 					: "Unable to sign in. Please try again.";
 			toast.error(message);
 			setLoading(false);
+			captureClientEvent("sign_in_failed", {
+				error: message,
+			});
 		}
 	};
 

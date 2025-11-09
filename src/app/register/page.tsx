@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
 import type { CurrencyResponse } from "@/db/queries/currencies";
+import { captureClientEvent } from "@/instrumentation-client";
 
 type SignUpEmailPayload = Parameters<(typeof signUp)["email"]>[0];
 
@@ -293,14 +294,22 @@ export default function SignUp() {
 										},
 										onError: (ctx) => {
 											toast.error(ctx.error.message);
+											captureClientEvent("sign_up_failed", {
+												error: ctx.error.message,
+											});
 										},
 										onSuccess: async () => {
 											toast.success("Account created! Check your inbox to confirm your email.");
 											router.push("/dashboard");
+											captureClientEvent("sign_up_succeeded");
 										},
 									},
 								} as SignUpEmailPayload;
 								try {
+									captureClientEvent("sign_up_submitted", {
+										hasImage: Boolean(image),
+										defaultCurrencyId,
+									});
 									await signUp.email(payload);
 								} catch (error) {
 									const message =
@@ -309,6 +318,9 @@ export default function SignUp() {
 											: "Unable to create your account. Please try again.";
 									toast.error(message);
 									setLoading(false);
+									captureClientEvent("sign_up_failed", {
+										error: message,
+									});
 								}
 							}}
 						>

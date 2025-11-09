@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { countUserTransactions, createTransaction, getUserTransactions } from "@/db/queries/transactions";
 import { auth } from "@/lib/auth";
 import { transactionPayloadSchema, type TransactionPayload } from "@/lib/validation/transactions";
+import { captureServerEvent, createServerPosthog, shutdownServerPosthog } from "@/lib/posthog-server";
 import { respondWithError, respondWithJSON } from "@/util/json";
 
 export async function POST(req: Request) {
@@ -11,12 +12,17 @@ export async function POST(req: Request) {
 
 	if (!session) return respondWithError(401, "Unauthorized");
 
+	const posthog = createServerPosthog();
+
 	try {
 		const json = await req.json();
 		const parsed = transactionPayloadSchema.safeParse(json);
 
 		if (!parsed.success) {
 			const message = parsed.error.issues[0]?.message ?? "Invalid transaction payload";
+			await captureServerEvent(posthog, "transaction_create_validation_failed", session.user.id, {
+				message,
+			});
 			return respondWithError(400, message);
 		}
 
@@ -24,11 +30,17 @@ export async function POST(req: Request) {
 
 		const bookedDate = new Date(payload.bookedAt);
 		if (Number.isNaN(bookedDate.getTime())) {
+			await captureServerEvent(posthog, "transaction_create_invalid_date", session.user.id, {
+				bookedAt: payload.bookedAt,
+			});
 			return respondWithError(400, "Booked date is invalid");
 		}
 
 		const counterparty = payload.counterparty.trim();
 		if (!counterparty) {
+			await captureServerEvent(posthog, "transaction_create_missing_counterparty", session.user.id, {
+				accountsId: payload.accountsId,
+			});
 			return respondWithError(400, "Counterparty is required");
 		}
 
@@ -48,12 +60,28 @@ export async function POST(req: Request) {
 		);
 
 		if (!transaction) {
+			await captureServerEvent(posthog, "transaction_create_failed", session.user.id, {
+				accountsId: payload.accountsId,
+			});
 			return respondWithError(500, "Transaction could not be created");
 		}
 
+		await captureServerEvent(posthog, "transaction_created_server", session.user.id, {
+			transactionId: transaction.id,
+			accountsId: transaction.accountsId,
+			amount: Number(transaction.amount),
+			type: transaction.type,
+			hasCategory: Boolean(transaction.categoriesId),
+		});
+
 		return respondWithJSON(201, transaction);
 	} catch (err) {
+		await captureServerEvent(posthog, "transaction_create_error", session.user.id, {
+			error: err instanceof Error ? err.message : String(err),
+		});
 		return respondWithError(500, "Error creating transaction", err);
+	} finally {
+		await shutdownServerPosthog(posthog);
 	}
 }
 

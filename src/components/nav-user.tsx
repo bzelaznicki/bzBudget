@@ -25,7 +25,7 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 
-import { POSTHOG_ENABLED, posthog } from "@/instrumentation-client";
+import { POSTHOG_ENABLED, captureClientEvent, posthog } from "@/instrumentation-client";
 import { authClient } from "@/lib/auth-client";
 import { redirect } from "next/navigation";
 
@@ -110,13 +110,20 @@ export function NavUser({
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							onClick={() => {
-								if (POSTHOG_ENABLED) {
-									posthog.reset();
-								}
+								captureClientEvent("sign_out_requested");
 								void authClient.signOut({
 									fetchOptions: {
 										onSuccess: () => {
+											captureClientEvent("sign_out_succeeded");
+											if (POSTHOG_ENABLED) {
+												posthog.reset();
+											}
 											redirect("/login");
+										},
+										onError: (ctx) => {
+											captureClientEvent("sign_out_failed", {
+												error: ctx.error.message,
+											});
 										},
 									},
 								});
