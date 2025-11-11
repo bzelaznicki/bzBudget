@@ -8,6 +8,7 @@ import {
 	timestamp,
 	uniqueIndex,
 	uuid,
+	date,
 } from "drizzle-orm/pg-core";
 
 export const categoriesTypeEnum = pgEnum("categories_type", ["system", "user"]);
@@ -16,7 +17,6 @@ export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "a
 
 export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"]);
 
-export const goalsTypeEnum = pgEnum("goals_type", ["monthly", "one-time"]);
 
 export const users = pgTable(
 	"users",
@@ -179,15 +179,33 @@ export const verifications = pgTable(
 	}),
 );
 
+
+export const goalTypeEnum = pgEnum("goal_type", ["saving", "spending"]);
+export const goalPeriodEnum = pgEnum("goal_period", ["one-time", "monthly", "weekly", "yearly"]);
+export const goalStatusEnum = pgEnum("goal_status", ["active", "completed", "missed", "paused"]);
+
 export const goals = pgTable("goals", {
 	id: uuid("id").primaryKey().defaultRandom(),
+
 	name: text("name").notNull(),
-	usersId: uuid("users_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+
+	goalType: goalTypeEnum("goal_type").notNull(),
+	period: goalPeriodEnum("period").default("one-time"),
+	status: goalStatusEnum("status").default("active"),
+
+	targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
+	currentAmount: numeric("current_amount", { precision: 12, scale: 2 }).default("0.00"),
+
+	startDate: date("start_date").notNull().defaultNow(),
+	endDate: date("end_date"),
+
 	categoriesId: uuid("categories_id").references(() => categories.id, { onDelete: "cascade" }),
+	usersId: uuid("users_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+
+	description: text("description"),
 
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-},
-);
+});
 
 
