@@ -16,6 +16,8 @@ export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "a
 
 export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"]);
 
+export const goalsTypeEnum = pgEnum("goals_type", ["monthly", "one-time"]);
+
 export const users = pgTable(
 	"users",
 	{
@@ -176,3 +178,16 @@ export const verifications = pgTable(
 		expiresAtIdx: index("verifications_expires_at_idx").on(table.expiresAt),
 	}),
 );
+
+export const goals = pgTable("goals", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	name: text("name").notNull(),
+	usersId: uuid("users_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+	categoriesId: uuid("categories_id").references(() => categories.id, { onDelete: "cascade" }),
+
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+},
+);
+
+
