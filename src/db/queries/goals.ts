@@ -6,6 +6,11 @@ export interface GetUserGoalsArgs {
 	usersId: string;
 	status?: "active" | "completed" | "missed" | "paused";
 	categoryId?: string;
+	limit?: number;
+	offset?: number;
+	deleted?: boolean;
+	deletedFrom?: Date;
+	deletedTo?: Date;
 
 
 }
@@ -32,5 +37,4 @@ export async function createGoal(usersId: string, name: string, targetAmount: nu
 }
 
 export async function getUserGoals(args: GetUserGoalsArgs) {
-
 }
