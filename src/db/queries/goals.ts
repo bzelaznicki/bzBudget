@@ -2,17 +2,17 @@ import { db } from "../db";
 import { goals } from "../schema";
 
 export interface GetUserGoalsArgs {
-
 	usersId: string;
-	status?: "active" | "completed" | "missed" | "paused";
-	categoryId?: string;
+	status?: ("active" | "completed" | "missed" | "paused")[];
+	period?: ("one-time" | "monthly" | "weekly" | "yearly")[];
+	categoriesId?: string;
 	limit?: number;
 	offset?: number;
 	deleted?: boolean;
 	deletedFrom?: Date;
 	deletedTo?: Date;
-
-
+	dir?: "asc" | "desc";
+	sortField?: "name" | "status" | "targetAmount" | "period" | "startDate" | "dueDate";
 }
 const toDateString = (date?: Date) => date?.toISOString().slice(0, 10);
 
@@ -37,4 +37,7 @@ export async function createGoal(usersId: string, name: string, targetAmount: nu
 }
 
 export async function getUserGoals(args: GetUserGoalsArgs) {
+	const limit = args.limit ?? 10;
+	const offset = args.offset ?? 0;
+
 }
