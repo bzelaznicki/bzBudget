@@ -1,3 +1,4 @@
+import { asc, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "../db";
 import { goals } from "../schema";
 
@@ -39,5 +40,39 @@ export async function createGoal(usersId: string, name: string, targetAmount: nu
 export async function getUserGoals(args: GetUserGoalsArgs) {
 	const limit = args.limit ?? 10;
 	const offset = args.offset ?? 0;
+	const dir = args.dir === "asc" ? "asc" : "desc";
 
+	const filters = [eq(goals.usersId, args.usersId)];
+
+	let orderField = desc(goals.endDate);
+
+	switch (args.sortField) {
+		case "name":
+			orderField = dir === "asc" ? asc(goals.name) : desc(goals.name);
+			break;
+		case "status":
+			orderField = dir === "asc" ? asc(goals.status) : desc(goals.status);
+			break;
+		case "period":
+			orderField = dir === "asc" ? asc(goals.period) : desc(goals.period);
+			break;
+		case "dueDate":
+			orderField = dir === "asc" ? asc(goals.endDate) : desc(goals.endDate);
+			break;
+		case "startDate":
+			orderField = dir === "asc" ? asc(goals.startDate) : desc(goals.startDate);
+			break;
+		case "targetAmount":
+			orderField = dir === "asc" ? asc(goals.targetAmount) : desc(goals.targetAmount);
+			break;
+		default:
+			asc(goals.endDate);
+	}
+
+	if (args.categoriesId) {
+		filters.push(eq(goals.categoriesId, args.categoriesId));
+	}
+	if (args.deleted && args.deleted === true) {
+		filters.push(isNotNull(goals.deletedAt));
+	}
 }
