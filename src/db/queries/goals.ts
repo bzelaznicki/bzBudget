@@ -1,6 +1,7 @@
-import { asc, desc, eq, gte, isNotNull } from "drizzle-orm";
+import { asc, desc, eq, gte, isNotNull, lte, and } from "drizzle-orm";
 import { db } from "../db";
 import { goals } from "../schema";
+import { orderColumns } from "@tanstack/react-table";
 
 export interface GetUserGoalsArgs {
 	usersId: string;
@@ -78,4 +79,14 @@ export async function getUserGoals(args: GetUserGoalsArgs) {
 	if (args.deletedFrom) {
 		filters.push(gte(goals.deletedAt, args.deletedFrom));
 	}
+	if (args.deletedTo) {
+		filters.push(lte(goals.deletedAt, args.deletedTo));
+	}
+
+	const whereClause = filters.length === 1 ? filters.[0] : and(...filters);
+
+
+	const userGoals = await db.select().from(goals).where(whereClause).orderBy(orderField).limit(limit).offset(offset);
+
+	return userGoals.length > 0 ? userGoals : null;
 }
