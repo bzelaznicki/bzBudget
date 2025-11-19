@@ -83,7 +83,7 @@ export async function getUserGoals(args: GetUserGoalsArgs) {
 		filters.push(lte(goals.deletedAt, args.deletedTo));
 	}
 
-	const whereClause = filters.length === 1 ? filters.[0] : and(...filters);
+	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 
 
 	const userGoals = await db.select().from(goals).where(whereClause).orderBy(orderField).limit(limit).offset(offset);
