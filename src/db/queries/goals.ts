@@ -1,4 +1,4 @@
-import { asc, desc, eq, isNotNull } from "drizzle-orm";
+import { asc, desc, eq, gte, isNotNull } from "drizzle-orm";
 import { db } from "../db";
 import { goals } from "../schema";
 
@@ -74,5 +74,8 @@ export async function getUserGoals(args: GetUserGoalsArgs) {
 	}
 	if (args.deleted && args.deleted === true) {
 		filters.push(isNotNull(goals.deletedAt));
+	}
+	if (args.deletedFrom) {
+		filters.push(gte(goals.deletedAt, args.deletedFrom));
 	}
 }
