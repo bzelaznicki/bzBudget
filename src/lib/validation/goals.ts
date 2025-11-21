@@ -20,4 +20,6 @@ export const goalsFormSchema = z.object({
 
 });
 
-export type GoalsFormTypes = z.infer<typeof goalsFormSchema>; 
+export type GoalsFormTypes = z.infer<typeof goalsFormSchema>;
+
+export const goalPayloadSchema = z.object({})
