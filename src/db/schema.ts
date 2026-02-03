@@ -1,6 +1,9 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	index,
+	integer,
 	numeric,
 	pgEnum,
 	pgTable,
@@ -16,6 +19,10 @@ export const currenciesPositionEnum = pgEnum("currenciesPosition", ["before", "a
 
 export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "outgoing"]);
 
+export const budgetPeriodEnum = pgEnum("budget_period", ["weekly", "monthly", "yearly"]);
+
+export const budgetAlertTypeEnum = pgEnum("budget_alert_type", ["threshold", "exceeded"]);
+
 export const users = pgTable(
 	"users",
 	{
@@ -27,11 +34,17 @@ export const users = pgTable(
 		defaultCurrenciesId: uuid("default_currencies_id").references(() => currencies.id, {
 			onDelete: "restrict",
 		}),
+		// Uses JavaScript/ISO weekday mapping (0=Sunday, 6=Saturday)
+		weekStartDay: integer("week_start_day").default(0).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => ({
 		emailUnique: uniqueIndex("users_email_unique").on(table.email),
+		weekStartDayCheck: check(
+			"users_week_start_day_check",
+			sql`${table.weekStartDay} BETWEEN 0 AND 6`,
+		),
 	}),
 );
 
@@ -99,8 +112,8 @@ export const categories = pgTable(
 		name: text("name").notNull(),
 		type: categoriesTypeEnum("type").notNull().default("system"),
 		usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
-		createdAt: timestamp("created_at").defaultNow(),
-		updatedAt: timestamp("updated_at").defaultNow(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 	},
 	(table) => ({
 		nameUsersUnique: uniqueIndex("categories_name_users_id_unique").on(table.name, table.usersId),
@@ -174,5 +187,61 @@ export const verifications = pgTable(
 	(table) => ({
 		identifierIdx: index("verifications_identifier_idx").on(table.identifier),
 		expiresAtIdx: index("verifications_expires_at_idx").on(table.expiresAt),
+	}),
+);
+
+export const budgets = pgTable(
+	"budgets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		usersId: uuid("users_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		categoriesId: uuid("categories_id").references(() => categories.id, {
+			onDelete: "set null",
+		}),
+		amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+		period: budgetPeriodEnum("period").notNull(),
+		alertThreshold: integer("alert_threshold").default(80).notNull(),
+		emailAlerts: boolean("email_alerts").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+	},
+	(table) => ({
+		usersCategoriesPeriodUnique: uniqueIndex("budgets_users_categories_period_unique").on(
+			table.usersId,
+			sql`COALESCE(${table.categoriesId}, ${sql.raw("'00000000-0000-0000-0000-000000000000'::uuid")})`,
+			table.period,
+		),
+		usersIdIdx: index("budgets_users_id_idx").on(table.usersId),
+		alertThresholdCheck: check(
+			"chk_alert_threshold_range",
+			sql`${table.alertThreshold} >= 1 AND ${table.alertThreshold} <= 100`,
+		),
+	}),
+);
+
+export const budgetAlerts = pgTable(
+	"budget_alerts",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		budgetsId: uuid("budgets_id")
+			.notNull()
+			.references(() => budgets.id, { onDelete: "cascade" }),
+		usersId: uuid("users_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		alertType: budgetAlertTypeEnum("alert_type").notNull(),
+		sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+		spendingAtAlert: numeric("spending_at_alert", { precision: 12, scale: 2 }).notNull(),
+	},
+	(table) => ({
+		budgetsIdIdx: index("budget_alerts_budgets_id_idx").on(table.budgetsId),
+		usersIdIdx: index("budget_alerts_users_id_idx").on(table.usersId),
+		budgetAlertUnique: uniqueIndex("budget_alerts_budget_type_date_unique").on(
+			table.budgetsId,
+			table.alertType,
+			sql`DATE(${table.sentAt})`,
+		),
 	}),
 );

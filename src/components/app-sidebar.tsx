@@ -14,6 +14,7 @@ import {
 	IconSearch,
 	IconSettings,
 	IconBuildingBank,
+	IconWallet,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -55,7 +56,6 @@ const data = {
 			url: "#",
 			icon: <IconChartBar />,
 		},
-
 	],
 	navClouds: [
 		{
@@ -110,6 +110,11 @@ const data = {
 			title: "Accounts",
 			url: "/settings/accounts",
 			icon: <IconBuildingBank />,
+		},
+		{
+			title: "Budgets",
+			url: "/settings/budgets",
+			icon: <IconWallet />,
 		},
 		{
 			title: "Settings",
