@@ -1,6 +1,6 @@
-import { and, desc, eq, gte, lt, sql, sum, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql, sum } from "drizzle-orm";
 import { db } from "../db";
-import { budgets, budgetAlerts, transactions, categories, users } from "../schema";
+import { budgets, budgetAlerts, transactions, categories, users, currencies } from "../schema";
 
 export type BudgetPeriod = "weekly" | "monthly" | "yearly";
 export type BudgetAlertType = "threshold" | "exceeded";
@@ -119,22 +119,22 @@ export async function listBudgetsWithSpending(
 	for (const row of budgetRows) {
 		const { start, end } = getPeriodDateRange(row.period, weekStartDay);
 
+		const conditions = [
+			eq(transactions.usersId, usersId),
+			gte(transactions.bookedAt, start),
+			lt(transactions.bookedAt, end),
+			eq(transactions.type, "outgoing"),
+		];
+		if (row.categoryId) {
+			conditions.push(eq(transactions.categoriesId, row.categoryId));
+		}
+
 		const spendingResult = await db
 			.select({
 				total: sum(transactions.amount),
 			})
 			.from(transactions)
-			.where(
-				and(
-					eq(transactions.usersId, usersId),
-					gte(transactions.bookedAt, start),
-					lt(transactions.bookedAt, end),
-					eq(transactions.type, "outgoing"),
-					row.categoryId
-						? eq(transactions.categoriesId, row.categoryId)
-						: isNull(transactions.categoriesId),
-				),
-			);
+			.where(and(...conditions));
 
 		const currentSpending = Number(spendingResult[0]?.total ?? 0);
 		const budgetAmount = Number(row.amount);
@@ -193,22 +193,22 @@ export async function getBudgetById(
 
 	const { start, end } = getPeriodDateRange(row.period, weekStartDay);
 
+	const conditions = [
+		eq(transactions.usersId, usersId),
+		gte(transactions.bookedAt, start),
+		lt(transactions.bookedAt, end),
+		eq(transactions.type, "outgoing"),
+	];
+	if (row.categoryId) {
+		conditions.push(eq(transactions.categoriesId, row.categoryId));
+	}
+
 	const spendingResult = await db
 		.select({
 			total: sum(transactions.amount),
 		})
 		.from(transactions)
-		.where(
-			and(
-				eq(transactions.usersId, usersId),
-				gte(transactions.bookedAt, start),
-				lt(transactions.bookedAt, end),
-				eq(transactions.type, "outgoing"),
-				row.categoryId
-					? eq(transactions.categoriesId, row.categoryId)
-					: isNull(transactions.categoriesId),
-			),
-		);
+		.where(and(...conditions));
 
 	const currentSpending = Number(spendingResult[0]?.total ?? 0);
 	const budgetAmount = Number(row.amount);
@@ -370,11 +370,6 @@ export async function hasAlertBeenSent(
 ): Promise<boolean> {
 	const weekStartDay = await getUserWeekStartDay(usersId);
 
-	const user = await db.query.users.findFirst({
-		where: eq(users.id, usersId),
-		columns: { weekStartDay: true },
-	});
-
 	const budget = await db.query.budgets.findFirst({
 		where: eq(budgets.id, budgetsId),
 		columns: { period: true },
@@ -430,11 +425,23 @@ export async function getTopBudgetsByUtilization(
 export async function checkBudgetsAndSendAlerts(usersId: string): Promise<void> {
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, usersId),
-		columns: { email: true, name: true, weekStartDay: true },
+		columns: { email: true, name: true, weekStartDay: true, defaultCurrenciesId: true },
 	});
 
 	if (!user || !user.email) {
 		return;
+	}
+
+	// Fetch user's default currency
+	let currencyCode = "USD";
+	if (user.defaultCurrenciesId) {
+		const currency = await db.query.currencies.findFirst({
+			where: eq(currencies.id, user.defaultCurrenciesId),
+			columns: { isoCode: true },
+		});
+		if (currency) {
+			currencyCode = currency.isoCode;
+		}
 	}
 
 	const allBudgets = await listBudgetsWithSpending(usersId);
@@ -452,7 +459,6 @@ export async function checkBudgetsAndSendAlerts(usersId: string): Promise<void> 
 		if (budget.isOverBudget) {
 			const hasBeenSent = await hasAlertBeenSent(budget.id, "exceeded", usersId);
 			if (!hasBeenSent) {
-				await recordBudgetAlert(budget.id, usersId, "exceeded", budget.currentSpending);
 				await sendBudgetExceededAlert(
 					user.email,
 					user.name ?? "",
@@ -460,12 +466,13 @@ export async function checkBudgetsAndSendAlerts(usersId: string): Promise<void> 
 					budget.period,
 					Number(budget.amount),
 					budget.currentSpending,
+					currencyCode,
 				);
+				await recordBudgetAlert(budget.id, usersId, "exceeded", budget.currentSpending);
 			}
 		} else if (budget.isThresholdReached) {
 			const hasBeenSent = await hasAlertBeenSent(budget.id, "threshold", usersId);
 			if (!hasBeenSent) {
-				await recordBudgetAlert(budget.id, usersId, "threshold", budget.currentSpending);
 				await sendBudgetThresholdAlert(
 					user.email,
 					user.name ?? "",
@@ -474,7 +481,9 @@ export async function checkBudgetsAndSendAlerts(usersId: string): Promise<void> 
 					Number(budget.amount),
 					budget.currentSpending,
 					budget.alertThreshold,
+					currencyCode,
 				);
+				await recordBudgetAlert(budget.id, usersId, "threshold", budget.currentSpending);
 			}
 		}
 	}

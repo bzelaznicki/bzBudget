@@ -27,7 +27,7 @@ export function CreateBudgetForm({ categories }: CreateBudgetFormProps) {
 	const [isSubmitting, setIsSubmitting] = React.useState(false);
 	const [amount, setAmount] = React.useState("");
 	const [period, setPeriod] = React.useState<"weekly" | "monthly" | "yearly">("monthly");
-	const [categoryId, setCategoryId] = React.useState<string>("");
+	const [categoryId, setCategoryId] = React.useState<string>("overall");
 	const [alertThreshold, setAlertThreshold] = React.useState(80);
 	const [emailAlerts, setEmailAlerts] = React.useState(true);
 
@@ -51,7 +51,7 @@ export function CreateBudgetForm({ categories }: CreateBudgetFormProps) {
 					period,
 					alertThreshold,
 					emailAlerts,
-					categoriesId: categoryId || null,
+					categoriesId: categoryId === "overall" ? null : categoryId,
 				}),
 			});
 
@@ -73,7 +73,7 @@ export function CreateBudgetForm({ categories }: CreateBudgetFormProps) {
 
 			toast.success("Budget created successfully");
 			setAmount("");
-			setCategoryId("");
+			setCategoryId("overall");
 			setAlertThreshold(80);
 			setEmailAlerts(true);
 			setPeriod("monthly");
@@ -95,7 +95,7 @@ export function CreateBudgetForm({ categories }: CreateBudgetFormProps) {
 						<SelectValue placeholder="Overall budget (all spending)" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="">Overall budget (all spending)</SelectItem>
+						<SelectItem value="overall">Overall budget (all spending)</SelectItem>
 						{categories.map((category) => (
 							<SelectItem key={category.id} value={category.id}>
 								{category.name}

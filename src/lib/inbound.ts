@@ -145,16 +145,17 @@ export async function sendBudgetThresholdAlert(
 	budgetAmount: number,
 	currentSpending: number,
 	threshold: number,
+	currencyCode: string = "USD",
 ) {
 	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
 	const firstName = name.trim().split(" ")[0] || "there";
 	const formattedBudget = new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "USD",
+		currency: currencyCode,
 	}).format(budgetAmount);
 	const formattedSpending = new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "USD",
+		currency: currencyCode,
 	}).format(currentSpending);
 
 	const htmlBody = `
@@ -225,21 +226,22 @@ export async function sendBudgetExceededAlert(
 	period: string,
 	budgetAmount: number,
 	currentSpending: number,
+	currencyCode: string = "USD",
 ) {
 	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
 	const firstName = name.trim().split(" ")[0] || "there";
 	const formattedBudget = new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "USD",
+		currency: currencyCode,
 	}).format(budgetAmount);
 	const formattedSpending = new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "USD",
+		currency: currencyCode,
 	}).format(currentSpending);
 	const overspend = currentSpending - budgetAmount;
 	const formattedOverspend = new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "USD",
+		currency: currencyCode,
 	}).format(overspend);
 
 	const htmlBody = `

@@ -134,10 +134,8 @@ export function BudgetsList({ budgets: initialBudgets }: BudgetsListProps) {
 					throw new Error(errorMessage);
 				}
 
-				const updatedBudget: BudgetWithSpending = await res.json();
-				setBudgets((prev) =>
-					prev.map((budget) => (budget.id === budgetId ? updatedBudget : budget)),
-				);
+				// API returns BudgetResponse without computed fields
+				// Refresh to get updated data with spending calculations
 				toast.success("Budget updated.");
 				router.refresh();
 				return true;
@@ -379,6 +377,20 @@ function EditBudgetForm({
 	const [emailAlerts, setEmailAlerts] = React.useState(budget.emailAlerts);
 	const [period, setPeriod] = React.useState(budget.period);
 
+	const isAmountValid = Number.isFinite(amount) && amount > 0;
+
+	const handleSubmit = () => {
+		if (!isAmountValid) {
+			return;
+		}
+		onSubmit({
+			amount,
+			alertThreshold,
+			emailAlerts,
+			period,
+		});
+	};
+
 	return (
 		<div className="space-y-4 py-4">
 			<div className="space-y-2">
@@ -389,8 +401,12 @@ function EditBudgetForm({
 					min="0.01"
 					step="0.01"
 					value={amount}
-					onChange={(e) => setAmount(Number(e.target.value))}
+					onChange={(e) => setAmount(parseFloat(e.target.value))}
+					className={!isAmountValid ? "border-red-500" : ""}
 				/>
+				{!isAmountValid && (
+					<p className="text-xs text-red-500">Please enter a valid amount greater than 0</p>
+				)}
 			</div>
 
 			<div className="space-y-2">
@@ -431,16 +447,7 @@ function EditBudgetForm({
 				<Button variant="outline" onClick={onCancel}>
 					Cancel
 				</Button>
-				<Button
-					onClick={() =>
-						onSubmit({
-							amount,
-							alertThreshold,
-							emailAlerts,
-							period,
-						})
-					}
-				>
+				<Button onClick={handleSubmit} disabled={!isAmountValid}>
 					Save Changes
 				</Button>
 			</div>

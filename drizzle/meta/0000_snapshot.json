@@ -1,5 +1,5 @@
 {
-  "id": "27bcc560-9e71-4edf-bffe-d0cc6d3906e1",
+  "id": "f9a157d8-755e-4df1-af48-29d0f78d6368",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -425,9 +425,9 @@
               "nulls": "last"
             },
             {
-              "expression": "categories_id",
-              "isExpression": false,
+              "expression": "COALESCE(\"categories_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             },
             {
@@ -482,7 +482,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1071,7 +1071,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "users_week_start_day_check": {
+          "name": "users_week_start_day_check",
+          "value": "\"users\".\"week_start_day\" BETWEEN 0 AND 6"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.verifications": {

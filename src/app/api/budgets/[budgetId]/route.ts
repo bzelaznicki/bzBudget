@@ -94,6 +94,13 @@ export async function PATCH(req: Request, context: { params: Promise<{ budgetId:
 		}
 
 		if (emailAlerts !== undefined) {
+			if (typeof emailAlerts !== "boolean") {
+				await captureServerEvent(posthog, "budget_update_validation_failed", session.user.id, {
+					field: "emailAlerts",
+					value: emailAlerts,
+				});
+				return respondWithError(400, "emailAlerts must be a boolean");
+			}
 			updateData.emailAlerts = emailAlerts;
 		}
 

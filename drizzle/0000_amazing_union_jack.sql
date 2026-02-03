@@ -109,7 +109,8 @@ CREATE TABLE "users" (
 	"default_currencies_id" uuid,
 	"week_start_day" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "users_week_start_day_check" CHECK ("users"."week_start_day" BETWEEN 0 AND 6)
 );
 --> statement-breakpoint
 CREATE TABLE "verifications" (
@@ -127,7 +128,7 @@ ALTER TABLE "bank_accounts" ADD CONSTRAINT "bank_accounts_currencies_id_currenci
 ALTER TABLE "budget_alerts" ADD CONSTRAINT "budget_alerts_budgets_id_budgets_id_fk" FOREIGN KEY ("budgets_id") REFERENCES "public"."budgets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "budget_alerts" ADD CONSTRAINT "budget_alerts_users_id_users_id_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "budgets" ADD CONSTRAINT "budgets_users_id_users_id_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "budgets" ADD CONSTRAINT "budgets_categories_id_categories_id_fk" FOREIGN KEY ("categories_id") REFERENCES "public"."categories"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "budgets" ADD CONSTRAINT "budgets_categories_id_categories_id_fk" FOREIGN KEY ("categories_id") REFERENCES "public"."categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "categories" ADD CONSTRAINT "categories_users_id_users_id_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_users_id_users_id_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_users_id_users_id_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -139,7 +140,7 @@ CREATE UNIQUE INDEX "accounts_provider_account_unique" ON "accounts" USING btree
 CREATE INDEX "accounts_users_id_idx" ON "accounts" USING btree ("users_id");--> statement-breakpoint
 CREATE INDEX "budget_alerts_budgets_id_idx" ON "budget_alerts" USING btree ("budgets_id");--> statement-breakpoint
 CREATE INDEX "budget_alerts_users_id_idx" ON "budget_alerts" USING btree ("users_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "budgets_users_categories_period_unique" ON "budgets" USING btree ("users_id","categories_id","period");--> statement-breakpoint
+CREATE UNIQUE INDEX "budgets_users_categories_period_unique" ON "budgets" USING btree ("users_id",COALESCE("categories_id", '00000000-0000-0000-0000-000000000000'::uuid),"period");--> statement-breakpoint
 CREATE INDEX "budgets_users_id_idx" ON "budgets" USING btree ("users_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "categories_name_users_id_unique" ON "categories" USING btree ("name","users_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "sessions_token_unique" ON "sessions" USING btree ("token");--> statement-breakpoint

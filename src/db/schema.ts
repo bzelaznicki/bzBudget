@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	index,
 	integer,
 	numeric,
@@ -32,12 +34,17 @@ export const users = pgTable(
 		defaultCurrenciesId: uuid("default_currencies_id").references(() => currencies.id, {
 			onDelete: "restrict",
 		}),
+		// Uses JavaScript/ISO weekday mapping (0=Sunday, 6=Saturday)
 		weekStartDay: integer("week_start_day").default(0).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => ({
 		emailUnique: uniqueIndex("users_email_unique").on(table.email),
+		weekStartDayCheck: check(
+			"users_week_start_day_check",
+			sql`${table.weekStartDay} BETWEEN 0 AND 6`,
+		),
 	}),
 );
 
@@ -191,7 +198,7 @@ export const budgets = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		categoriesId: uuid("categories_id").references(() => categories.id, {
-			onDelete: "cascade",
+			onDelete: "set null",
 		}),
 		amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
 		period: budgetPeriodEnum("period").notNull(),
@@ -203,7 +210,7 @@ export const budgets = pgTable(
 	(table) => ({
 		usersCategoriesPeriodUnique: uniqueIndex("budgets_users_categories_period_unique").on(
 			table.usersId,
-			table.categoriesId,
+			sql`COALESCE(${table.categoriesId}, ${sql.raw("'00000000-0000-0000-0000-000000000000'::uuid")})`,
 			table.period,
 		),
 		usersIdIdx: index("budgets_users_id_idx").on(table.usersId),
