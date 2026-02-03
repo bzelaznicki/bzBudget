@@ -112,8 +112,8 @@ export const categories = pgTable(
 		name: text("name").notNull(),
 		type: categoriesTypeEnum("type").notNull().default("system"),
 		usersId: uuid("users_id").references(() => users.id, { onDelete: "cascade" }),
-		createdAt: timestamp("created_at").defaultNow(),
-		updatedAt: timestamp("updated_at").defaultNow(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 	},
 	(table) => ({
 		nameUsersUnique: uniqueIndex("categories_name_users_id_unique").on(table.name, table.usersId),
@@ -214,6 +214,10 @@ export const budgets = pgTable(
 			table.period,
 		),
 		usersIdIdx: index("budgets_users_id_idx").on(table.usersId),
+		alertThresholdCheck: check(
+			"chk_alert_threshold_range",
+			sql`${table.alertThreshold} >= 1 AND ${table.alertThreshold} <= 100`,
+		),
 	}),
 );
 
@@ -234,5 +238,10 @@ export const budgetAlerts = pgTable(
 	(table) => ({
 		budgetsIdIdx: index("budget_alerts_budgets_id_idx").on(table.budgetsId),
 		usersIdIdx: index("budget_alerts_users_id_idx").on(table.usersId),
+		budgetAlertUnique: uniqueIndex("budget_alerts_budget_type_date_unique").on(
+			table.budgetsId,
+			table.alertType,
+			sql`DATE(${table.sentAt})`,
+		),
 	}),
 );

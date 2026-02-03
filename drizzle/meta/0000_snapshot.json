@@ -1,5 +1,5 @@
 {
-  "id": "f9a157d8-755e-4df1-af48-29d0f78d6368",
+  "id": "d13fdc47-ff0c-4b64-9b21-c4a53d9be7f9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -313,6 +313,33 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "budget_alerts_budget_type_date_unique": {
+          "name": "budget_alerts_budget_type_date_unique",
+          "columns": [
+            {
+              "expression": "budgets_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "alert_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "DATE(\"sent_at\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -489,7 +516,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chk_alert_threshold_range": {
+          "name": "chk_alert_threshold_range",
+          "value": "\"budgets\".\"alert_threshold\" >= 1 AND \"budgets\".\"alert_threshold\" <= 100"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.categories": {
@@ -525,14 +557,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false,
           "default": "now()"

@@ -48,7 +48,8 @@ CREATE TABLE "budgets" (
 	"alert_threshold" integer DEFAULT 80 NOT NULL,
 	"email_alerts" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now()
+	"updated_at" timestamp with time zone DEFAULT now(),
+	CONSTRAINT "chk_alert_threshold_range" CHECK ("budgets"."alert_threshold" >= 1 AND "budgets"."alert_threshold" <= 100)
 );
 --> statement-breakpoint
 CREATE TABLE "categories" (
@@ -56,8 +57,8 @@ CREATE TABLE "categories" (
 	"name" text NOT NULL,
 	"type" "categories_type" DEFAULT 'system' NOT NULL,
 	"users_id" uuid,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now()
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "currencies" (
@@ -140,6 +141,7 @@ CREATE UNIQUE INDEX "accounts_provider_account_unique" ON "accounts" USING btree
 CREATE INDEX "accounts_users_id_idx" ON "accounts" USING btree ("users_id");--> statement-breakpoint
 CREATE INDEX "budget_alerts_budgets_id_idx" ON "budget_alerts" USING btree ("budgets_id");--> statement-breakpoint
 CREATE INDEX "budget_alerts_users_id_idx" ON "budget_alerts" USING btree ("users_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "budget_alerts_budget_type_date_unique" ON "budget_alerts" USING btree ("budgets_id","alert_type",DATE("sent_at"));--> statement-breakpoint
 CREATE UNIQUE INDEX "budgets_users_categories_period_unique" ON "budgets" USING btree ("users_id",COALESCE("categories_id", '00000000-0000-0000-0000-000000000000'::uuid),"period");--> statement-breakpoint
 CREATE INDEX "budgets_users_id_idx" ON "budgets" USING btree ("users_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "categories_name_users_id_unique" ON "categories" USING btree ("name","users_id");--> statement-breakpoint
