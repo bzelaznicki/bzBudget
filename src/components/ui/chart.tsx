@@ -110,9 +110,11 @@ function ChartTooltipContent({
 	color,
 	nameKey,
 	labelKey,
-}: RechartsPrimitive.TooltipContentProps<
-	RechartsPrimitive.ValueType,
-	RechartsPrimitive.NameType
+}: Partial<
+	RechartsPrimitive.TooltipContentProps<
+		RechartsPrimitive.ValueType,
+		RechartsPrimitive.NameType
+	>
 > &
 	React.ComponentProps<"div"> & {
 		hideLabel?: boolean;
