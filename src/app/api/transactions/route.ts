@@ -1,10 +1,19 @@
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
 
-import { countUserTransactions, createTransaction, getUserTransactions } from "@/db/queries/transactions";
+import {
+	countUserTransactions,
+	createTransaction,
+	getUserTransactions,
+} from "@/db/queries/transactions";
+import { checkBudgetsAndSendAlerts } from "@/db/queries/budgets";
 import { auth } from "@/lib/auth";
 import { transactionPayloadSchema, type TransactionPayload } from "@/lib/validation/transactions";
-import { captureServerEvent, createServerPosthog, shutdownServerPosthog } from "@/lib/posthog-server";
+import {
+	captureServerEvent,
+	createServerPosthog,
+	shutdownServerPosthog,
+} from "@/lib/posthog-server";
 import { respondWithError, respondWithJSON } from "@/util/json";
 
 export async function POST(req: Request) {
@@ -38,9 +47,14 @@ export async function POST(req: Request) {
 
 		const counterparty = payload.counterparty.trim();
 		if (!counterparty) {
-			await captureServerEvent(posthog, "transaction_create_missing_counterparty", session.user.id, {
-				accountsId: payload.accountsId,
-			});
+			await captureServerEvent(
+				posthog,
+				"transaction_create_missing_counterparty",
+				session.user.id,
+				{
+					accountsId: payload.accountsId,
+				},
+			);
 			return respondWithError(400, "Counterparty is required");
 		}
 
@@ -74,6 +88,13 @@ export async function POST(req: Request) {
 			hasCategory: Boolean(transaction.categoriesId),
 		});
 
+		// Check budgets and send alerts in the background (don't block response)
+		if (transaction.type === "outgoing") {
+			void checkBudgetsAndSendAlerts(session.user.id).catch((err) => {
+				console.error("Error checking budgets after transaction creation:", err);
+			});
+		}
+
 		return respondWithJSON(201, transaction);
 	} catch (err) {
 		await captureServerEvent(posthog, "transaction_create_error", session.user.id, {
@@ -86,7 +107,6 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: NextRequest) {
-
 	const session = await auth.api.getSession({ headers: await headers() });
 
 	if (!session) return respondWithError(401, "Unauthorized");
@@ -123,7 +143,7 @@ export async function GET(req: NextRequest) {
 			total: totalCount,
 			pages,
 			transactions,
-		}
+		};
 		return respondWithJSON(200, res);
 	} catch (err) {
 		return respondWithError(500, "Error getting transactions", err);
