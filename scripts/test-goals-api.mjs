@@ -93,7 +93,9 @@ try {
 		assert.equal((await request(path, { method, cookie: "" })).status, 401);
 	}
 	assert.equal((await request("/goals", { cookie: "" })).status, 307);
-	assert.deepEqual(await (await request("/api/goals")).json(), []);
+	const emptyList = await request("/api/goals");
+	assert.equal(emptyList.headers.get("cache-control"), "no-store");
+	assert.deepEqual(await emptyList.json(), []);
 	assert.equal((await request("/api/goals", { method: "POST", rawBody: "{" })).status, 400);
 	for (const body of [
 		{ ...input, targetAmount: "Infinity" },
@@ -110,7 +112,9 @@ try {
 	assert.equal(goal.targetAmount, "1000.50");
 	assert.equal(goal.currentAmount, "0.00");
 	const path = `/api/goals/${goal.id}`;
-	assert.equal((await request(path)).status, 200);
+	const detail = await request(path);
+	assert.equal(detail.status, 200);
+	assert.equal(detail.headers.get("cache-control"), "no-store");
 	for (const method of ["GET", "PATCH", "DELETE"]) {
 		assert.equal(
 			(
@@ -142,7 +146,9 @@ try {
 	});
 	assert.equal(changed.status, 200);
 	assert.equal((await changed.json()).currentAmount, "1250.25");
-	assert.equal((await (await request("/api/goals?status=completed")).json()).length, 1);
+	const completedList = await request("/api/goals?status=completed");
+	assert.equal(completedList.headers.get("cache-control"), "no-store");
+	assert.equal((await completedList.json()).length, 1);
 	assert.deepEqual(await (await request("/api/goals?status=active")).json(), []);
 	const page = await request("/goals");
 	assert.equal(page.status, 200);

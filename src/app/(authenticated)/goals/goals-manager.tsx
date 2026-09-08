@@ -109,8 +109,13 @@ export function GoalsManager({
 				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 					{visible.map((goal) => {
 						const currency = currencies.find((item) => item.id === goal.currenciesId);
-						const money = (amount: string) =>
-							`${Number(amount).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency?.isoCode ?? ""}`;
+						const money = (amount: string) => {
+							const formattedAmount = Number(amount).toLocaleString("en", {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							});
+							return `${formattedAmount} ${currency?.isoCode ?? ""}`;
+						};
 						const percent = (Number(goal.currentAmount) / Number(goal.targetAmount)) * 100;
 						const overdue = goal.status === "active" && goal.dueDate && goal.dueDate < today;
 						return (

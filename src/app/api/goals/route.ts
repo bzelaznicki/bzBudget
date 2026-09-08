@@ -11,7 +11,9 @@ export async function GET(req: NextRequest) {
 	const parsed = goalListSchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
 	if (!parsed.success) return respondWithError(400, "Invalid goals filter");
 	try {
-		return respondWithJSON(200, await listUserGoals(session.user.id, parsed.data.status));
+		const response = respondWithJSON(200, await listUserGoals(session.user.id, parsed.data.status));
+		response.headers.set("Cache-Control", "no-store");
+		return response;
 	} catch (error) {
 		return respondWithError(500, "Unable to load goals", error);
 	}

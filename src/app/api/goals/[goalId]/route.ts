@@ -13,7 +13,9 @@ export async function GET(_req: Request, { params }: Context) {
 	if (!goalIdSchema.safeParse(goalId).success) return respondWithError(400, "Invalid goal ID");
 	try {
 		const goal = await getUserGoal(session.user.id, goalId);
-		return goal ? respondWithJSON(200, goal) : respondWithError(404, "Goal not found");
+		const response = goal ? respondWithJSON(200, goal) : respondWithError(404, "Goal not found");
+		response.headers.set("Cache-Control", "no-store");
+		return response;
 	} catch (error) {
 		return respondWithError(500, "Unable to load goal", error);
 	}

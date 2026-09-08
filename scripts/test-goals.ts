@@ -10,8 +10,15 @@ async function main() {
 	const otherId = randomUUID();
 	const currencyId = randomUUID();
 	try {
-		await client`INSERT INTO users (id, email) VALUES (${ownerId}, ${`${ownerId}@example.invalid`}), (${otherId}, ${`${otherId}@example.invalid`})`;
-		await client`INSERT INTO currencies (id, name, iso_code, symbol) VALUES (${currencyId}, ${currencyId}, 'TST', 'T')`;
+		await client`
+			INSERT INTO users (id, email)
+			VALUES (${ownerId}, ${`${ownerId}@example.invalid`}),
+				(${otherId}, ${`${otherId}@example.invalid`})
+		`;
+		await client`
+			INSERT INTO currencies (id, name, iso_code, symbol)
+			VALUES (${currencyId}, ${currencyId}, 'TST', 'T')
+		`;
 		const input = createGoalSchema.parse({
 			name: " Emergency fund ",
 			targetAmount: "1000.50",
