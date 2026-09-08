@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import postgres from "postgres";
 import { runMigrations } from "./migrate.mjs";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 
 async function assertMigrationLockReleased(client) {
 	const [locks] = await client`SELECT count(*)::int AS count FROM pg_locks
@@ -25,13 +26,15 @@ try {
 	await assertMigrationLockReleased(client);
 	await runMigrations(client);
 	const [history] = await client`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`;
-	assert.equal(history.count, 1);
+	assert.equal(history.count, readMigrationFiles({ migrationsFolder: "./drizzle" }).length);
 	// Force a failure in normal migrations, after compatibility handling returns.
-	const [entry] = await client`SELECT created_at FROM drizzle.__drizzle_migrations`;
+	const entries = await client`SELECT id, created_at FROM drizzle.__drizzle_migrations`;
 	await client`UPDATE drizzle.__drizzle_migrations SET created_at = 0`;
 	await assert.rejects(runMigrations(client));
 	await assertMigrationLockReleased(client);
-	await client`UPDATE drizzle.__drizzle_migrations SET created_at = ${entry.created_at}`;
+	for (const entry of entries) {
+		await client`UPDATE drizzle.__drizzle_migrations SET created_at = ${entry.created_at} WHERE id = ${entry.id}`;
+	}
 	const [user] =
 		await client`INSERT INTO users (email) VALUES ('migration-test@example.invalid') RETURNING id`;
 	const [budget] =
@@ -49,8 +52,15 @@ try {
 		stdio: "inherit",
 	});
 	assert.equal(budgetsTest.status, 0, "Budget creation regressions");
+	const goalsTest = spawnSync("node_modules/.bin/tsx", ["scripts/test-goals.ts"], {
+		env: { ...process.env, DATABASE_URL: url.toString() },
+		stdio: "inherit",
+	});
+	assert.equal(goalsTest.status, 0, "Goals regressions");
 
-	// Reproduce a preserved database with real data but no migration history.
+	// Reproduce a preserved baseline database, before goals, with no migration history.
+	await client`DROP TABLE goals`;
+	await client`DROP TYPE goal_status`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await assert.rejects(
 		migrate((await import("drizzle-orm/postgres-js")).drizzle(client), {
@@ -60,8 +70,20 @@ try {
 	await runMigrations(client);
 	const [preserved] = await client`SELECT count(*)::int AS count FROM budget_alerts`;
 	assert.equal(preserved.count, 2);
+	const [goalTable] = await client`SELECT to_regclass('public.goals') AS name`;
+	assert.equal(goalTable.name, "goals", "Preserved baseline upgrades to goals");
+	const [currency] =
+		await client`INSERT INTO currencies (name, iso_code, symbol) VALUES ('Migration currency', 'TST', 'T') RETURNING id`;
+	const [savedGoal] =
+		await client`INSERT INTO goals (users_id, name, target_amount, current_amount, currencies_id)
+		VALUES (${user.id}, 'Migration savings', 100, 12.34, ${currency.id}) RETURNING id`;
+	await runMigrations(client);
+	const [savedProgress] = await client`SELECT current_amount FROM goals WHERE id = ${savedGoal.id}`;
+	assert.equal(savedProgress.current_amount, "12.34", "Repeat migrations preserve goal progress");
 
 	// The previous production schema had no budgets or week-start preference.
+	await client`DROP TABLE goals`;
+	await client`DROP TYPE goal_status`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await client`DROP TABLE budget_alerts, budgets`;
 	await client`ALTER TABLE users DROP COLUMN week_start_day`;
@@ -75,6 +97,8 @@ try {
 	await runMigrations(client);
 
 	// Incompatible existing enum values must roll back without baselining.
+	await client`DROP TABLE goals`;
+	await client`DROP TYPE goal_status`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await client`ALTER TYPE budget_period ADD VALUE 'invalid'`;
 	await client`DROP TABLE budget_alerts, budgets`;

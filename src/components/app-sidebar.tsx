@@ -15,6 +15,7 @@ import {
 	IconSettings,
 	IconBuildingBank,
 	IconWallet,
+	IconTarget,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -41,6 +42,11 @@ const data = {
 		avatar: "/avatars/shadcn.jpg",
 	},
 	navMain: [
+		{
+			title: "Goals",
+			url: "/goals",
+			icon: <IconTarget />,
+		},
 		{
 			title: "Dashboard",
 			url: "/dashboard",
