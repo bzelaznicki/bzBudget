@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	date,
 	index,
 	integer,
 	numeric,
@@ -22,6 +23,8 @@ export const transactionsTypeEnum = pgEnum("transaction_type", ["incoming", "out
 export const budgetPeriodEnum = pgEnum("budget_period", ["weekly", "monthly", "yearly"]);
 
 export const budgetAlertTypeEnum = pgEnum("budget_alert_type", ["threshold", "exceeded"]);
+
+export const goalStatusEnum = pgEnum("goal_status", ["active", "completed", "missed", "paused"]);
 
 export const users = pgTable(
 	"users",
@@ -242,6 +245,39 @@ export const budgetAlerts = pgTable(
 			table.budgetsId,
 			table.alertType,
 			sql`DATE(${table.sentAt} AT TIME ZONE 'UTC')`,
+		),
+	}),
+);
+
+export const goals = pgTable(
+	"goals",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		usersId: uuid("users_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
+		currentAmount: numeric("current_amount", { precision: 12, scale: 2 }).notNull().default("0.00"),
+		currenciesId: uuid("currencies_id")
+			.notNull()
+			.references(() => currencies.id, { onDelete: "restrict" }),
+		status: goalStatusEnum("status").notNull().default("active"),
+		dueDate: date("due_date"),
+		description: text("description"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
+	},
+	(table) => ({
+		usersIdIdx: index("goals_users_id_idx").on(table.usersId),
+		targetAmountCheck: check(
+			"goals_target_amount_check",
+			sql`${table.targetAmount} > 0 AND ${table.targetAmount} < 10000000000`,
+		),
+		currentAmountCheck: check(
+			"goals_current_amount_check",
+			sql`${table.currentAmount} >= 0 AND ${table.currentAmount} < 10000000000`,
 		),
 	}),
 );

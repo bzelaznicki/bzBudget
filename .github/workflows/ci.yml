@@ -38,3 +38,4 @@ jobs:
       - run: pnpm lint
       - run: node scripts/test-migrations.mjs
       - run: pnpm build
+      - run: node scripts/test-goals-api.mjs
