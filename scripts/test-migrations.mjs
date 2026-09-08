@@ -5,6 +5,13 @@ import postgres from "postgres";
 import { runMigrations } from "./migrate.mjs";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
+async function assertMigrationLockReleased(client) {
+	const [locks] = await client`SELECT count(*)::int AS count FROM pg_locks
+		WHERE locktype = 'advisory' AND objid = 182734091
+		AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`;
+	assert.equal(locks.count, 0, "Migration advisory lock must be released");
+}
+
 if (!process.env.TEST_DATABASE_URL) throw new Error("TEST_DATABASE_URL is required");
 const admin = postgres(process.env.TEST_DATABASE_URL, { max: 1 });
 const name = `migration_test_${randomUUID().replaceAll("-", "")}`;
@@ -13,11 +20,18 @@ try {
 	await admin.unsafe(`CREATE DATABASE "${name}"`);
 	const url = new URL(process.env.TEST_DATABASE_URL);
 	url.pathname = `/${name}`;
-	client = postgres(url.toString(), { max: 1, onnotice: () => {} });
-	await runMigrations(client);
+	client = postgres(url.toString(), { max: 4, onnotice: () => {} });
+	await Promise.all(Array.from({ length: 4 }, () => runMigrations(client)));
+	await assertMigrationLockReleased(client);
 	await runMigrations(client);
 	const [history] = await client`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`;
 	assert.equal(history.count, 1);
+	// Force a failure in normal migrations, after compatibility handling returns.
+	const [entry] = await client`SELECT created_at FROM drizzle.__drizzle_migrations`;
+	await client`UPDATE drizzle.__drizzle_migrations SET created_at = 0`;
+	await assert.rejects(runMigrations(client));
+	await assertMigrationLockReleased(client);
+	await client`UPDATE drizzle.__drizzle_migrations SET created_at = ${entry.created_at}`;
 	const [user] =
 		await client`INSERT INTO users (email) VALUES ('migration-test@example.invalid') RETURNING id`;
 	const [budget] =
@@ -67,6 +81,7 @@ try {
 	await assert.rejects(runMigrations(client), /differs from the supported baseline/);
 	const [absentJournal] = await client`SELECT to_regclass('drizzle.__drizzle_migrations') AS name`;
 	assert.equal(absentJournal.name, null);
+	await assertMigrationLockReleased(client);
 	const [rolledBackTable] = await client`SELECT to_regclass('public.budgets') AS name`;
 	assert.equal(rolledBackTable.name, null);
 

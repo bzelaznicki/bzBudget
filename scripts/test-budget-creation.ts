@@ -1,16 +1,22 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
-import { createBudgetPayloadSchema } from "../src/lib/validation/budgets";
-import { createBudget } from "../src/db/queries/budgets";
+import { createBudgetPayloadSchema } from "@/lib/validation/budgets";
+import { createBudget } from "@/db/queries/budgets";
 
 async function main() {
 	const client = postgres(process.env.DATABASE_URL!, { max: 1 });
 	try {
-		const [owner, other] =
-			await client`INSERT INTO users (email) VALUES ('owner@example.invalid'), ('other@example.invalid') RETURNING id`;
-		const [foreign] =
-			await client`INSERT INTO categories (name,type,users_id) VALUES ('Private category','user',${other.id}) RETURNING id`;
+		const [owner, other] = await client`
+				INSERT INTO users (email)
+				VALUES ('owner@example.invalid'), ('other@example.invalid')
+				RETURNING id
+			`;
+		const [foreign] = await client`
+				INSERT INTO categories (name,type,users_id)
+				VALUES ('Private category','user',${other.id})
+				RETURNING id
+			`;
 		const input = {
 			usersId: owner.id,
 			categoriesId: foreign.id,
@@ -26,13 +32,19 @@ async function main() {
 		await assert.rejects(createBudget({ ...input, categoriesId: randomUUID() }), {
 			name: "InvalidBudgetCategoryError",
 		});
-		const [orphan] =
-			await client`INSERT INTO categories (name,type,users_id) VALUES ('Orphan','user',null) RETURNING id`;
+		const [orphan] = await client`
+				INSERT INTO categories (name,type,users_id)
+				VALUES ('Orphan','user',null)
+				RETURNING id
+			`;
 		await assert.rejects(createBudget({ ...input, categoriesId: orphan.id }), {
 			name: "InvalidBudgetCategoryError",
 		});
-		const [system, owned] =
-			await client`INSERT INTO categories (name,type,users_id) VALUES ('System','system',null), ('Owned','user',${owner.id}) RETURNING id`;
+		const [system, owned] = await client`
+				INSERT INTO categories (name,type,users_id)
+				VALUES ('System','system',null), ('Owned','user',${owner.id})
+				RETURNING id
+			`;
 		for (const categoriesId of [system.id, owned.id, null]) {
 			const budget = await createBudget({ ...input, categoriesId });
 			assert.ok(budget);

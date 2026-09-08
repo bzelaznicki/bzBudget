@@ -37,10 +37,48 @@ async function describeSchema(tx, schema) {
 }
 
 export async function runMigrations(client) {
+	const session = await client.reserve();
+	// postgres.js reserved connections omit the transaction helpers and options
+	// that Drizzle needs. Keep these operations on the reserved connection too.
+	session.options = client.options;
+	session.begin = async (work) => {
+		await session`BEGIN`;
+		try {
+			const result = await work(session);
+			await session`COMMIT`;
+			return result;
+		} catch (error) {
+			await session`ROLLBACK`;
+			throw error;
+		}
+	};
+	session.savepoint = async (work) => {
+		await session`SAVEPOINT migration_step`;
+		try {
+			return await work(session);
+		} catch (error) {
+			await session`ROLLBACK TO SAVEPOINT migration_step`;
+			throw error;
+		} finally {
+			await session`RELEASE SAVEPOINT migration_step`;
+		}
+	};
+	try {
+		await session`SELECT pg_advisory_lock(182734091)`;
+		try {
+			await applyMigrations(session);
+		} finally {
+			await session`SELECT pg_advisory_unlock(182734091)`;
+		}
+	} finally {
+		session.release();
+	}
+}
+
+async function applyMigrations(client) {
 	const migrations = readMigrationFiles({ migrationsFolder: "./drizzle" });
 	const baseline = migrations[0];
 	await client.begin(async (tx) => {
-		await tx`SELECT pg_advisory_xact_lock(182734091)`;
 		const [journal] = await tx`SELECT to_regclass('drizzle.__drizzle_migrations') AS name`;
 		if (journal.name) {
 			const history = await tx`SELECT id FROM drizzle.__drizzle_migrations LIMIT 1`;

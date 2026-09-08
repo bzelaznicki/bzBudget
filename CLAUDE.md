@@ -53,7 +53,9 @@ src/
 
 ### Key Patterns
 
-- **Authentication**: API routes validate sessions via `auth.api.getSession()` from `@/lib/auth`
+- **Authentication**: Next.js API routes in `src/app/api/**/*.{ts,tsx}` must call
+  `auth.api.getSession()` from `@/lib/auth`. The public `/api/health` endpoint is the sole
+  exception because Railway probes it without a session.
 - **Database queries**: Centralized in `src/db/queries/` - use these instead of direct Drizzle calls
 - **Validation**: Zod schemas in `src/lib/validation/` define API request shapes
 - **Path aliases**: Use `@/*` to import from `src/*`
