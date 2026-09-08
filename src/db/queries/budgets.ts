@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql, sum } from "drizzle-orm";
+import { and, desc, eq, gte, lt, or, sum } from "drizzle-orm";
 import { db } from "../db";
 import { budgets, budgetAlerts, transactions, categories, users, currencies } from "../schema";
 
@@ -230,7 +230,26 @@ export async function getBudgetById(
 	};
 }
 
+export class InvalidBudgetCategoryError extends Error {
+	constructor() {
+		super("Invalid category");
+		this.name = "InvalidBudgetCategoryError";
+	}
+}
+
 export async function createBudget(input: CreateBudgetInput): Promise<BudgetResponse | null> {
+	let category: { id: string; name: string } | null = null;
+	if (input.categoriesId !== null) {
+		category =
+			(await db.query.categories.findFirst({
+				where: and(
+					eq(categories.id, input.categoriesId),
+					or(eq(categories.type, "system"), eq(categories.usersId, input.usersId)),
+				),
+				columns: { id: true, name: true },
+			})) ?? null;
+		if (!category) throw new InvalidBudgetCategoryError();
+	}
 	try {
 		const [budget] = await db
 			.insert(budgets)
@@ -252,17 +271,6 @@ export async function createBudget(input: CreateBudgetInput): Promise<BudgetResp
 				createdAt: budgets.createdAt,
 				updatedAt: budgets.updatedAt,
 			});
-
-		let category: { id: string | null; name: string } | null = null;
-		if (budget.categoriesId) {
-			const cat = await db.query.categories.findFirst({
-				where: eq(categories.id, budget.categoriesId),
-				columns: { id: true, name: true },
-			});
-			if (cat) {
-				category = { id: cat.id, name: cat.name };
-			}
-		}
 
 		return {
 			id: budget.id,
