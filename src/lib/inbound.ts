@@ -4,7 +4,6 @@ export const inbound = new Inbound(process.env.INBOUND_API_KEY!);
 const fromField = process.env.INBOUND_FROM_FIELD;
 
 export async function sendConfirmationEmail(email: string, name: string, link: string) {
-
 	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
 	const firstName = name.trim().split(" ")[0] || "there";
 	const htmlBody = `
@@ -59,25 +58,21 @@ export async function sendConfirmationEmail(email: string, name: string, link: s
 			</tr>
 		</table>
 	`;
-	const { data, error } = await inbound.emails.send(
-		{
-			from: fromField,
-			to: email,
-			subject: "You're almost there! Confirm your bzBudget account",
-			html: htmlBody,
-		}
-	)
+	const { data, error } = await inbound.emails.send({
+		from: fromField,
+		to: email,
+		subject: "You're almost there! Confirm your bzBudget account",
+		html: htmlBody,
+	});
 
 	if (error) {
 		throw new Error(error);
 	} else {
 		return data;
 	}
-
 }
 
 export async function sendResetPasswordEmail(email: string, name: string, link: string) {
-
 	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
 	const firstName = name.trim().split(" ")[0] || "there";
 	const htmlBody = `
@@ -128,19 +123,184 @@ export async function sendResetPasswordEmail(email: string, name: string, link: 
 			</tr>
 		</table>
 	`;
-	const { data, error } = await inbound.emails.send(
-		{
-			from: fromField,
-			to: email,
-			subject: "Reset your bzBudget password",
-			html: htmlBody,
-		}
-	)
+	const { data, error } = await inbound.emails.send({
+		from: fromField,
+		to: email,
+		subject: "Reset your bzBudget password",
+		html: htmlBody,
+	});
 
 	if (error) {
 		throw new Error(error);
 	} else {
 		return data;
 	}
+}
 
+export async function sendBudgetThresholdAlert(
+	email: string,
+	name: string,
+	categoryName: string,
+	period: string,
+	budgetAmount: number,
+	currentSpending: number,
+	threshold: number,
+	currencyCode: string = "USD",
+) {
+	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
+	const firstName = name.trim().split(" ")[0] || "there";
+	const formattedBudget = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currencyCode,
+	}).format(budgetAmount);
+	const formattedSpending = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currencyCode,
+	}).format(currentSpending);
+
+	const htmlBody = `
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;">
+			<tr>
+				<td align="center">
+					<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;padding:40px 48px;text-align:left;box-shadow:0 8px 30px rgba(15,23,42,0.08);">
+						<tr>
+							<td style="text-align:center;">
+								<p style="text-transform:uppercase;letter-spacing:0.08em;font-size:12px;font-weight:600;color:#f59e0b;margin:0;">Budget Alert</p>
+								<h1 style="font-size:28px;margin:12px 0 8px;font-weight:700;color:#0f172a;">You're approaching your limit, ${firstName}</h1>
+								<p style="font-size:16px;line-height:1.6;margin:0;color:#475467;">You've spent ${formattedSpending} of your ${formattedBudget} ${period} ${categoryName} budget.</p>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;background:#fef3c7;border-radius:12px;padding:24px;">
+									<tr>
+										<td style="text-align:center;">
+											<p style="font-size:14px;color:#92400e;margin:0 0 8px;">You're at ${threshold}% of your budget</p>
+											<div style="background:#fde68a;height:8px;border-radius:4px;overflow:hidden;">
+												<div style="background:#f59e0b;width:${Math.min(threshold, 100)}%;height:100%;"></div>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<p style="font-size:15px;color:#475467;line-height:1.6;margin:0 0 16px;">Want to stay on track? Check your dashboard to see where your money is going and adjust if needed.</p>
+								<p style="margin:0 0 16px;text-align:center;">
+									<a href="${process.env.NEXT_PUBLIC_APP_URL || "https://bzbudget.app"}/dashboard" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:999px;font-size:16px;">View Dashboard</a>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<p style="font-size:15px;color:#475467;margin:0 0 4px;">Keep an eye on those goals,</p>
+								<p style="font-weight:600;color:#0f172a;margin:0;">The bzBudget Crew</p>
+								<p style="font-size:12px;color:#94a3b8;margin:16px 0 0;">You're receiving this because you enabled budget alerts. You can manage alerts in your settings.</p>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	`;
+
+	const { data, error } = await inbound.emails.send({
+		from: fromField,
+		to: email,
+		subject: `Budget Alert: You've spent ${threshold}% of your ${categoryName} budget`,
+		html: htmlBody,
+	});
+
+	if (error) {
+		throw new Error(error);
+	} else {
+		return data;
+	}
+}
+
+export async function sendBudgetExceededAlert(
+	email: string,
+	name: string,
+	categoryName: string,
+	period: string,
+	budgetAmount: number,
+	currentSpending: number,
+	currencyCode: string = "USD",
+) {
+	if (!fromField) throw new Error("INBOUND_FROM_FIELD must be set");
+	const firstName = name.trim().split(" ")[0] || "there";
+	const formattedBudget = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currencyCode,
+	}).format(budgetAmount);
+	const formattedSpending = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currencyCode,
+	}).format(currentSpending);
+	const overspend = currentSpending - budgetAmount;
+	const formattedOverspend = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currencyCode,
+	}).format(overspend);
+
+	const htmlBody = `
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;">
+			<tr>
+				<td align="center">
+					<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;padding:40px 48px;text-align:left;box-shadow:0 8px 30px rgba(15,23,42,0.08);">
+						<tr>
+							<td style="text-align:center;">
+								<p style="text-transform:uppercase;letter-spacing:0.08em;font-size:12px;font-weight:600;color:#ef4444;margin:0;">Budget Exceeded</p>
+								<h1 style="font-size:28px;margin:12px 0 8px;font-weight:700;color:#0f172a;">Budget limit reached, ${firstName}</h1>
+								<p style="font-size:16px;line-height:1.6;margin:0;color:#475467;">You've spent ${formattedSpending} of your ${formattedBudget} ${period} ${categoryName} budget.</p>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;background:#fee2e2;border-radius:12px;padding:24px;">
+									<tr>
+										<td style="text-align:center;">
+											<p style="font-size:14px;color:#991b1b;margin:0 0 8px;">You've exceeded your budget by ${formattedOverspend}</p>
+											<div style="background:#fecaca;height:8px;border-radius:4px;overflow:hidden;">
+												<div style="background:#ef4444;width:100%;height:100%;"></div>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<p style="font-size:15px;color:#475467;line-height:1.6;margin:0 0 16px;">Time to review your spending? Check your dashboard to see what's pushing you over and adjust your budget or habits.</p>
+								<p style="margin:0 0 16px;text-align:center;">
+									<a href="${process.env.NEXT_PUBLIC_APP_URL || "https://bzbudget.app"}/dashboard" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:999px;font-size:16px;">View Dashboard</a>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<p style="font-size:15px;color:#475467;margin:0 0 4px;">We're here to help you stay on track,</p>
+								<p style="font-weight:600;color:#0f172a;margin:0;">The bzBudget Crew</p>
+								<p style="font-size:12px;color:#94a3b8;margin:16px 0 0;">You're receiving this because you enabled budget alerts. You can manage alerts in your settings.</p>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	`;
+
+	const { data, error } = await inbound.emails.send({
+		from: fromField,
+		to: email,
+		subject: `Budget Exceeded: You've gone over your ${categoryName} budget`,
+		html: htmlBody,
+	});
+
+	if (error) {
+		throw new Error(error);
+	} else {
+		return data;
+	}
 }

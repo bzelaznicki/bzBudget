@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import type { CurrencyResponse } from "@/db/queries/currencies";
 
 type CurrencyPickerProps = {
@@ -19,12 +19,6 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<CurrencyResponse | null>(null);
-
-	useEffect(() => {
-		if (selected) {
-			setQuery(formatCurrencyLabel(selected));
-		}
-	}, [selected]);
 
 	const filtered = useMemo(() => {
 		const normalisedQuery = normalise(query);
@@ -94,6 +88,7 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 											}}
 											onClick={() => {
 												setSelected(currency);
+												setQuery(formatCurrencyLabel(currency));
 												setOpen(false);
 											}}
 										>

@@ -1,6 +1,6 @@
 import { Suspense, cache } from "react";
 
-import { IconMinus, IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
+import { IconMinus, IconTrendingDown, IconTrendingUp, IconWallet } from "@tabler/icons-react";
 import { redirect } from "next/navigation";
 import {
 	getDashboardSummary,
@@ -9,6 +9,7 @@ import {
 	dashboardNetSummary,
 	dashboardCountTransactions,
 } from "@/db/queries/dashboard";
+import { getTopBudgetsByUtilization } from "@/db/queries/budgets";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -19,6 +20,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -115,8 +117,8 @@ export async function SectionCards() {
 			<Suspense fallback={<SummaryCardSkeleton title="Net cash flow" />}>
 				<NetCard userId={session?.user.id} />
 			</Suspense>
-			<Suspense fallback={<SummaryCardSkeleton title="Active accounts" />}>
-				<AccountsCard />
+			<Suspense fallback={<SummaryCardSkeleton title="Budget status" />}>
+				<BudgetCard userId={session?.user.id} />
 			</Suspense>
 		</div>
 	);
@@ -295,5 +297,103 @@ async function AccountsCard() {
 			}
 			footerSupport="Linked accounts tracked in bzBudget"
 		/>
+	);
+}
+
+async function BudgetCard(props: CardProps) {
+	const budgets = await getTopBudgetsByUtilization(props.userId, 1);
+	const topBudget = budgets?.[0];
+
+	if (!topBudget) {
+		return (
+			<Card className="@container/card">
+				<CardHeader>
+					<CardDescription>Budget status</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						No budgets
+					</CardTitle>
+					<CardAction className="max-w-full">
+						<Badge variant="outline" className="max-w-full truncate">
+							<IconWallet className="size-4" />
+							Setup needed
+						</Badge>
+					</CardAction>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<div className="line-clamp-1 flex gap-2 font-medium">
+						<Link href="/settings/budgets" className="text-primary hover:underline">
+							Create your first budget
+						</Link>
+					</div>
+					<div className="text-muted-foreground">Track spending limits</div>
+				</CardFooter>
+			</Card>
+		);
+	}
+
+	const displayName = topBudget.category?.name ?? "Overall";
+	const percentage = Math.min(topBudget.utilizationPercentage, 100);
+	const isOverBudget = topBudget.isOverBudget;
+	const isThresholdReached = topBudget.isThresholdReached && !isOverBudget;
+
+	let badgeContent: React.ReactNode;
+	let footerHeadline: string;
+	let footerSupport: string;
+
+	if (isOverBudget) {
+		badgeContent = (
+			<>
+				<span className="text-red-500">●</span> Exceeded
+			</>
+		);
+		footerHeadline = "Over budget";
+		footerSupport = "Review your spending";
+	} else if (isThresholdReached) {
+		badgeContent = (
+			<>
+				<span className="text-amber-500">●</span> Alert
+			</>
+		);
+		footerHeadline = "Threshold reached";
+		footerSupport = `${percentage.toFixed(0)}% of ${displayName} budget`;
+	} else {
+		badgeContent = (
+			<>
+				<span className="text-emerald-500">●</span> On track
+			</>
+		);
+		footerHeadline = "Within budget";
+		footerSupport = `${percentage.toFixed(0)}% of ${displayName} used`;
+	}
+
+	return (
+		<Card className="@container/card">
+			<CardHeader>
+				<CardDescription>Budget: {displayName}</CardDescription>
+				<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+					{percentage.toFixed(0)}%
+				</CardTitle>
+				<CardAction className="max-w-full">
+					<Badge variant="outline" className="max-w-full truncate gap-1">
+						{badgeContent}
+					</Badge>
+				</CardAction>
+			</CardHeader>
+			<CardFooter className="flex-col items-start gap-1.5 text-sm">
+				<div className="line-clamp-1 flex gap-2 font-medium">
+					{footerHeadline}
+					{trendIcon(percentage >= 100 ? "down" : percentage >= 80 ? "down" : "up")}
+				</div>
+				<div className="text-muted-foreground">{footerSupport}</div>
+				<div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+					<div
+						className={`h-full transition-all duration-300 ${
+							isOverBudget ? "bg-red-500" : isThresholdReached ? "bg-amber-500" : "bg-emerald-500"
+						}`}
+						style={{ width: `${percentage}%` }}
+					/>
+				</div>
+			</CardFooter>
+		</Card>
 	);
 }
