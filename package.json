@@ -8,7 +8,7 @@
 		"start": "next start",
 		"lint": "eslint .",
 		"fmt": "prettier --write .",
-		"migrate": "pnpm drizzle-kit migrate",
+		"migrate": "node scripts/migrate.mjs",
 		"seed": "pnpm tsx src/util/seed.ts"
 	},
 	"dependencies": {
