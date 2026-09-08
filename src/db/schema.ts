@@ -241,7 +241,7 @@ export const budgetAlerts = pgTable(
 		budgetAlertUnique: uniqueIndex("budget_alerts_budget_type_date_unique").on(
 			table.budgetsId,
 			table.alertType,
-			sql`DATE(${table.sentAt})`,
+			sql`DATE(${table.sentAt} AT TIME ZONE 'UTC')`,
 		),
 	}),
 );

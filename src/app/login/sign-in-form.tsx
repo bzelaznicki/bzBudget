@@ -30,22 +30,11 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [rememberMe, setRememberMe] = useState(false);
-	const [shouldShowConfirmationToast, setShouldShowConfirmationToast] = useState<boolean>(!!emailConfirmed);
 	const hasShownConfirmationToast = useRef(false);
 	const searchParams = useSearchParams();
 
-	useEffect(() => {
-		if (emailConfirmed) {
-			setShouldShowConfirmationToast(true);
-		}
-	}, [emailConfirmed]);
-
-	useEffect(() => {
-		if (shouldShowConfirmationToast) return;
-		if (searchParams?.get("emailConfirmed") === "1") {
-			setShouldShowConfirmationToast(true);
-		}
-	}, [searchParams, shouldShowConfirmationToast]);
+	const shouldShowConfirmationToast =
+		!!emailConfirmed || searchParams?.get("emailConfirmed") === "1";
 
 	useEffect(() => {
 		if (!shouldShowConfirmationToast || hasShownConfirmationToast.current) return;
@@ -56,7 +45,9 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 			const params = new URLSearchParams(window.location.search);
 			params.delete("emailConfirmed");
 			const queryString = params.toString();
-			const nextUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+			const nextUrl = queryString
+				? `${window.location.pathname}?${queryString}`
+				: window.location.pathname;
 			window.history.replaceState(null, "", `${nextUrl}${window.location.hash}`);
 		}
 	}, [searchParams, shouldShowConfirmationToast]);

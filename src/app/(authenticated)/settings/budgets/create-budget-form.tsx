@@ -147,7 +147,7 @@ export function CreateBudgetForm({ categories }: CreateBudgetFormProps) {
 					onValueChange={(value: number[]) => setAlertThreshold(value[0])}
 				/>
 				<p className="text-xs text-gray-500">
-					We'll send you an email when you reach {alertThreshold}% of your budget
+					We&apos;ll send you an email when you reach {alertThreshold}% of your budget
 				</p>
 			</div>
 
