@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { listUserGoals } from "@/db/queries/goals";
 import { listCurrencies } from "@/db/queries/currencies";
 import { auth } from "@/lib/auth";
-import { GoalsManager } from "./goals-manager";
+import { GoalsManager } from "@/app/(authenticated)/goals/goals-manager";
 
 export default async function GoalsPage() {
 	const session = await auth.api.getSession({ headers: await headers() });
