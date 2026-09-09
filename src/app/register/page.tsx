@@ -113,10 +113,10 @@ export default function SignUp() {
 			]}
 			footer="By creating an account you agree to our Terms and Privacy Policy."
 		>
-			<Card className="w-full border border-gray-100 shadow-xl shadow-emerald-100">
+			<Card className="w-full border border-border shadow-xl shadow-black/5">
 				<CardHeader>
-					<CardTitle className="text-xl text-gray-900">Create your account</CardTitle>
-					<CardDescription className="text-sm text-gray-500">
+					<CardTitle className="text-xl text-foreground">Create your account</CardTitle>
+					<CardDescription className="text-sm text-muted-foreground">
 						Tell us a little about yourself to personalise your dashboard.
 					</CardDescription>
 				</CardHeader>
@@ -175,9 +175,7 @@ export default function SignUp() {
 								>
 									<SelectValue
 										placeholder={
-											currenciesLoading
-												? "Loading currencies..."
-												: "Select your default currency"
+											currenciesLoading ? "Loading currencies..." : "Select your default currency"
 										}
 									/>
 								</SelectTrigger>
@@ -186,10 +184,8 @@ export default function SignUp() {
 										{currencies.map((currency) => (
 											<SelectItem key={currency.id} value={currency.id}>
 												<span className="flex flex-col text-left">
-													<span className="font-medium text-gray-900">
-														{currency.name}
-													</span>
-													<span className="text-xs text-gray-500">
+													<span className="font-medium text-foreground">{currency.name}</span>
+													<span className="text-xs text-muted-foreground">
 														{currency.symbol
 															? `${currency.symbol} · ${currency.isoCode}`
 															: currency.isoCode}
@@ -200,7 +196,7 @@ export default function SignUp() {
 									</SelectContent>
 								) : null}
 							</Select>
-							<p className="text-xs text-gray-500">
+							<p className="text-xs text-muted-foreground">
 								{!currenciesLoading && currencies.length === 0
 									? "Currencies are unavailable right now. Please refresh the page or try again later."
 									: "Used to format totals and insights across your dashboard."}
@@ -234,7 +230,7 @@ export default function SignUp() {
 							<Label htmlFor="image">Profile image (optional)</Label>
 							<div className="flex items-center gap-4">
 								{imagePreview && (
-									<div className="relative h-16 w-16 overflow-hidden rounded-md border border-gray-200">
+									<div className="relative h-16 w-16 overflow-hidden rounded-md border border-border">
 										<Image
 											src={imagePreview}
 											alt="Profile preview"
@@ -255,7 +251,7 @@ export default function SignUp() {
 									{imagePreview && (
 										<button
 											type="button"
-											className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+											className="rounded-full border border-border p-2 text-muted-foreground transition hover:border-border hover:text-secondary-foreground"
 											onClick={() => {
 												setImage(null);
 												setImagePreview(null);
@@ -328,12 +324,12 @@ export default function SignUp() {
 						</Button>
 					</div>
 				</CardContent>
-				<CardFooter className="flex flex-col items-center gap-3 border-t border-gray-100 bg-gray-50/60 py-4">
-					<p className="text-sm text-gray-600">
+				<CardFooter className="flex flex-col items-center gap-3 border-t border-border bg-sunk/60 py-4">
+					<p className="text-sm text-muted-foreground">
 						Already registered?{" "}
 						<Link
 							href="/login"
-							className="font-medium text-emerald-600 transition hover:text-emerald-700"
+							className="font-medium text-income-foreground transition hover:text-income-foreground"
 						>
 							Sign in instead
 						</Link>

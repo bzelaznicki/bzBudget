@@ -1,26 +1,17 @@
 import { type ComponentProps } from "react";
 import {
-	IconCamera,
-	IconChartBar,
-	IconDashboard,
-	IconDatabase,
-	IconFileAi,
-	IconFileDescription,
-	IconFileWord,
-	IconHelp,
-	IconCreditCard,
-	IconCoins,
-	IconReport,
-	IconSearch,
-	IconSettings,
+	IconArrowsExchange,
 	IconBuildingBank,
-	IconWallet,
+	IconCoins,
+	IconLayoutGrid,
 	IconTarget,
+	IconWallet,
 } from "@tabler/icons-react";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { NavDocuments } from "@/components/nav-documents";
-import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
+import { LeftToSpendCard } from "@/components/left-to-spend-card";
+import { NavPrimary, type NavItem } from "@/components/nav-primary";
 import { NavUser } from "@/components/nav-user";
 import {
 	Sidebar,
@@ -31,131 +22,18 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { dashboardExpensesSummary, dashboardIncomeSummary } from "@/db/queries/dashboard";
+import { getPrimaryCurrency, pickCurrencyRow } from "@/db/queries/overview";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { daysRemainingInMonth } from "@/lib/format";
 
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	navMain: [
-		{
-			title: "Goals",
-			url: "/goals",
-			icon: <IconTarget />,
-		},
-		{
-			title: "Dashboard",
-			url: "/dashboard",
-			icon: <IconDashboard />,
-		},
-		{
-			title: "Transactions",
-			url: "/transactions",
-			icon: <IconCreditCard />,
-		},
-		{
-			title: "Analytics",
-			url: "#",
-			icon: <IconChartBar />,
-		},
-	],
-	navClouds: [
-		{
-			title: "Capture",
-			icon: <IconCamera />,
-			isActive: true,
-			url: "#",
-			items: [
-				{
-					title: "Active Proposals",
-					url: "#",
-				},
-				{
-					title: "Archived",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Proposal",
-			icon: <IconFileDescription />,
-			url: "#",
-			items: [
-				{
-					title: "Active Proposals",
-					url: "#",
-				},
-				{
-					title: "Archived",
-					url: "#",
-				},
-			],
-		},
-		{
-			title: "Prompts",
-			icon: <IconFileAi />,
-			url: "#",
-			items: [
-				{
-					title: "Active Proposals",
-					url: "#",
-				},
-				{
-					title: "Archived",
-					url: "#",
-				},
-			],
-		},
-	],
-	navSecondary: [
-		{
-			title: "Accounts",
-			url: "/settings/accounts",
-			icon: <IconBuildingBank />,
-		},
-		{
-			title: "Budgets",
-			url: "/settings/budgets",
-			icon: <IconWallet />,
-		},
-		{
-			title: "Settings",
-			url: "#",
-			icon: <IconSettings />,
-		},
-		{
-			title: "Get Help",
-			url: "#",
-			icon: <IconHelp />,
-		},
-		{
-			title: "Search",
-			url: "#",
-			icon: <IconSearch />,
-		},
-	],
-	documents: [
-		{
-			name: "Data Library",
-			url: "#",
-			icon: <IconDatabase />,
-		},
-		{
-			name: "Reports",
-			url: "#",
-			icon: <IconReport />,
-		},
-		{
-			name: "Word Assistant",
-			url: "#",
-			icon: <IconFileWord />,
-		},
-	],
-};
+const NAV_ITEMS: NavItem[] = [
+	{ title: "Overview", url: "/dashboard", icon: <IconLayoutGrid /> },
+	{ title: "Transactions", url: "/transactions", icon: <IconArrowsExchange /> },
+	{ title: "Budgets", url: "/settings/budgets", icon: <IconWallet /> },
+	{ title: "Accounts", url: "/settings/accounts", icon: <IconBuildingBank /> },
+	{ title: "Goals", url: "/goals", icon: <IconTarget /> },
+];
 
 export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	const session = await auth.api.getSession({ headers: await headers() });
@@ -165,6 +43,14 @@ export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	}
 
 	const user = session.user;
+	const currency = await getPrimaryCurrency(user.id);
+	const [income, expenses] = await Promise.all([
+		dashboardIncomeSummary(user.id),
+		dashboardExpensesSummary(user.id),
+	]);
+
+	const incomeTotal = pickCurrencyRow(income, currency)?.current ?? 0;
+	const expensesTotal = pickCurrencyRow(expenses, currency)?.current ?? 0;
 
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
@@ -173,19 +59,29 @@ export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
 							<a href="/dashboard">
-								<IconCoins className="!size-5" />
-								<span className="text-base font-semibold">bzBudget</span>
+								<span className="bg-income flex size-6.5 items-center justify-center rounded-lg text-white">
+									<IconCoins className="size-4" />
+								</span>
+								<span className="text-foreground text-[15px] font-semibold tracking-tight">
+									bzBudget
+								</span>
 							</a>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>
+
 			<SidebarContent>
-				<NavMain items={data.navMain} />
-				<NavDocuments items={data.documents} />
-				<NavSecondary items={data.navSecondary} className="mt-auto" />
+				<NavPrimary items={NAV_ITEMS} />
 			</SidebarContent>
-			<SidebarFooter>
+
+			<SidebarFooter className="gap-3">
+				<LeftToSpendCard
+					amount={incomeTotal - expensesTotal}
+					income={incomeTotal}
+					currency={currency}
+					daysLeft={daysRemainingInMonth()}
+				/>
 				<NavUser
 					user={{
 						name: user.name,

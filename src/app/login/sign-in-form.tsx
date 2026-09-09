@@ -118,10 +118,10 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 			]}
 			footer="Need help getting into your account? Contact support at support@bzbudget.app"
 		>
-			<Card className="w-full border border-gray-100 shadow-xl shadow-emerald-100">
+			<Card className="w-full border border-border shadow-xl shadow-black/5">
 				<CardHeader>
-					<CardTitle className="text-xl text-gray-900">Sign in</CardTitle>
-					<CardDescription className="text-sm text-gray-500">
+					<CardTitle className="text-xl text-foreground">Sign in</CardTitle>
+					<CardDescription className="text-sm text-muted-foreground">
 						Enter your credentials to access your dashboard.
 					</CardDescription>
 				</CardHeader>
@@ -146,7 +146,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 								<Label htmlFor="password">Password</Label>
 								<Link
 									href="/login/reset"
-									className="ml-auto inline-block text-sm text-emerald-600 transition hover:text-emerald-700"
+									className="ml-auto inline-block text-sm text-income-foreground transition hover:text-income-foreground"
 								>
 									Forgot?
 								</Link>
@@ -163,7 +163,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 						</div>
 
 						<div className="flex items-center justify-between">
-							<label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+							<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
 								<Checkbox
 									id="remember"
 									checked={rememberMe}
@@ -173,7 +173,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 								/>
 								Remember me
 							</label>
-							<span className="text-xs text-gray-400">Trusted device recommended</span>
+							<span className="text-xs text-muted-foreground">Trusted device recommended</span>
 						</div>
 
 						<Button type="submit" variant="default" className="w-full" disabled={loading}>
@@ -181,12 +181,12 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 						</Button>
 					</form>
 				</CardContent>
-				<CardFooter className="border-t border-gray-100 bg-gray-50/60 py-4">
-					<p className="text-sm text-gray-600">
+				<CardFooter className="border-t border-border bg-sunk/60 py-4">
+					<p className="text-sm text-muted-foreground">
 						New to bzBudget?{" "}
 						<Link
 							href="/register"
-							className="font-medium text-emerald-600 transition hover:text-emerald-700"
+							className="font-medium text-income-foreground transition hover:text-income-foreground"
 						>
 							Create an account
 						</Link>

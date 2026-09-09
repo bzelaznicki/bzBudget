@@ -270,7 +270,9 @@ export async function getUserTransactions(
 }
 
 export async function countUserTransactions(args: CountTransactionsArgs): Promise<number> {
-	const filters = [eq(transactions.usersId, args.usersId)];
+	// Matches getUserTransactions, which excludes soft-deleted rows by default — otherwise
+	// this total disagrees with the list it paginates.
+	const filters = [eq(transactions.usersId, args.usersId), isNull(transactions.deletedAt)];
 	if (args.dateFrom) {
 		filters.push(gte(transactions.bookedAt, args.dateFrom));
 	}

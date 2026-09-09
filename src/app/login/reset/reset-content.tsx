@@ -112,11 +112,11 @@ export function ResetPasswordContent() {
 			footer="Trouble regaining access? Our support team can verify your identity and restore your account."
 		>
 			<Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "link" | "code")}>
-				<Card className="w-full border border-gray-100 shadow-xl shadow-emerald-100">
+				<Card className="w-full border border-border shadow-xl shadow-black/5">
 					<CardHeader className="space-y-4">
 						<div>
-							<CardTitle className="text-xl text-gray-900">Reset your password</CardTitle>
-							<CardDescription className="text-sm text-gray-500">
+							<CardTitle className="text-xl text-foreground">Reset your password</CardTitle>
+							<CardDescription className="text-sm text-muted-foreground">
 								Start with an email link or jump straight to entering your reset code.
 							</CardDescription>
 						</div>
@@ -145,9 +145,9 @@ export function ResetPasswordContent() {
 										autoComplete="email"
 									/>
 								</div>
-								<p className="text-sm text-gray-500">
-									We send a one-time link you can use for the next 15 minutes. Make sure you have access
-									to this inbox before continuing.
+								<p className="text-sm text-muted-foreground">
+									We send a one-time link you can use for the next 15 minutes. Make sure you have
+									access to this inbox before continuing.
 								</p>
 								<Button type="submit" className="w-full" disabled={isRequesting}>
 									{isRequesting ? (
@@ -179,7 +179,7 @@ export function ResetPasswordContent() {
 										required
 										autoComplete="one-time-code"
 									/>
-									<p className="text-xs text-gray-500">
+									<p className="text-xs text-muted-foreground">
 										This code appears in the email or authenticator message we just sent you.
 									</p>
 								</div>
@@ -220,9 +220,12 @@ export function ResetPasswordContent() {
 							</form>
 						</TabsContent>
 					</CardContent>
-					<CardFooter className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 py-4 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+					<CardFooter className="flex flex-col gap-3 border-t border-border bg-sunk/60 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
 						<span>Remembered your credentials?</span>
-						<Link href="/login" className="font-medium text-emerald-600 transition hover:text-emerald-700">
+						<Link
+							href="/login"
+							className="font-medium text-income-foreground transition hover:text-income-foreground"
+						>
 							Return to sign in
 						</Link>
 					</CardFooter>

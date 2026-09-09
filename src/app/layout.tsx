@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import "@/instrumentation-client";
@@ -14,6 +14,12 @@ const geistMono = Geist_Mono({
 	subsets: ["latin"],
 });
 
+const newsreader = Newsreader({
+	variable: "--font-newsreader",
+	subsets: ["latin"],
+	weight: ["300", "400", "500"],
+});
+
 export const metadata: Metadata = {
 	title: "bzBudget",
 	description: "Sort your budget",
@@ -26,7 +32,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+			<body
+				className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} antialiased`}
+			>
 				<Toaster richColors closeButton position="bottom-center" />
 				{children}
 			</body>
