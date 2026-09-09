@@ -99,10 +99,12 @@ export default async function ManageAccountPage() {
 				<div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
 					<div className="px-4 lg:px-6">
 						<div className="flex flex-col gap-6">
-							<div className="rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm">
-								<p className="text-sm text-gray-500">Account settings</p>
-								<h1 className="text-3xl font-semibold text-gray-900">Manage your bzBudget account</h1>
-								<p className="mt-2 max-w-xl text-sm text-gray-500">
+							<div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-sm">
+								<p className="text-sm text-muted-foreground">Account settings</p>
+								<h1 className="text-3xl font-semibold text-foreground">
+									Manage your bzBudget account
+								</h1>
+								<p className="mt-2 max-w-xl text-sm text-muted-foreground">
 									Update your profile details, review active connections, and keep your security
 									preferences in sync.
 								</p>
@@ -110,13 +112,14 @@ export default async function ManageAccountPage() {
 
 							<div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
 								<section className="space-y-6">
-									<Card className="border border-gray-100 shadow-sm">
+									<Card className="border border-border shadow-sm">
 										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">
+											<CardTitle className="text-lg font-semibold text-foreground">
 												Profile details
 											</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
-												Share a name and contact so teammates and notifications know where to reach you.
+											<CardDescription className="text-sm text-muted-foreground">
+												Share a name and contact so teammates and notifications know where to reach
+												you.
 											</CardDescription>
 										</CardHeader>
 										<CardContent>
@@ -143,9 +146,11 @@ export default async function ManageAccountPage() {
 														aria-label="Email"
 													/>
 												</div>
-												<div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-xs text-emerald-700 sm:flex-row sm:items-center sm:justify-between">
+												<div className="flex flex-col gap-3 rounded-xl border border-border bg-income/10 px-4 py-3 text-xs text-income-foreground sm:flex-row sm:items-center sm:justify-between">
 													<div>
-														<p className="font-semibold tracking-wide text-emerald-800">Account status</p>
+														<p className="font-semibold tracking-wide text-income-foreground">
+															Account status
+														</p>
 														<p>
 															{user.emailVerified ? "Email verified" : "Email verification pending"}
 															{createdAt ? ` • Joined ${createdAt}` : null}
@@ -159,36 +164,42 @@ export default async function ManageAccountPage() {
 										</CardContent>
 									</Card>
 
-									<Card className="border border-gray-100 shadow-sm">
+									<Card className="border border-border shadow-sm">
 										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">
+											<CardTitle className="text-lg font-semibold text-foreground">
 												Security & access
 											</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
+											<CardDescription className="text-sm text-muted-foreground">
 												Reset your password or review actively signed-in sessions.
 											</CardDescription>
 										</CardHeader>
 										<CardContent className="grid gap-4">
-											<div className="flex flex-col gap-2 rounded-xl bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+											<div className="flex flex-col gap-2 rounded-xl bg-sunk p-4 sm:flex-row sm:items-center sm:justify-between">
 												<div>
-													<p className="text-sm font-medium text-gray-900">Password</p>
-													<p className="text-xs text-gray-500">
+													<p className="text-sm font-medium text-foreground">Password</p>
+													<p className="text-xs text-muted-foreground">
 														Use a strong password that you don’t reuse elsewhere.
 													</p>
 												</div>
-												<Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
+												<Button
+													type="button"
+													variant="outline"
+													className="w-full sm:w-auto"
+													asChild
+												>
 													<Link href="/settings/profile/change-password">Change password</Link>
 												</Button>
 											</div>
 
-											<div className="rounded-xl bg-gray-50 p-4">
-												<p className="text-sm font-medium text-gray-900">Active sessions</p>
-												<p className="mt-1 text-xs text-gray-500">
-													Review active logins for your account. Revoke any sessions you do not recognise to keep things secure.
+											<div className="rounded-xl bg-sunk p-4">
+												<p className="text-sm font-medium text-foreground">Active sessions</p>
+												<p className="mt-1 text-xs text-muted-foreground">
+													Review active logins for your account. Revoke any sessions you do not
+													recognise to keep things secure.
 												</p>
-												<div className="mt-4 grid gap-3 text-sm text-gray-600">
+												<div className="mt-4 grid gap-3 text-sm text-muted-foreground">
 													{activeSessions.length === 0 ? (
-														<div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
+														<div className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
 															No active sessions detected.
 														</div>
 													) : (
@@ -197,32 +208,39 @@ export default async function ManageAccountPage() {
 															return (
 																<div
 																	key={sessionItem.token}
-																	className="rounded-lg border border-gray-200 bg-white/90 px-3 py-3 shadow-sm"
+																	className="rounded-lg border border-border bg-card px-3 py-3 shadow-sm"
 																>
 																	<div className="flex items-start justify-between gap-2">
 																		<div>
-																			<p className="text-sm font-medium text-gray-900">
+																			<p className="text-sm font-medium text-foreground">
 																				{sessionDeviceName(sessionItem.userAgent)}
 																			</p>
-																			<p className="text-xs text-gray-500">
+																			<p className="text-xs text-muted-foreground">
 																				IP address: {sessionItem.ipAddress ?? "Not available"}
 																			</p>
 																		</div>
 																		{isCurrentSession ? (
-																			<span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+																			<span className="rounded-full bg-income/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-income-foreground">
 																				Current
 																			</span>
 																		) : null}
 																	</div>
-																	<div className="mt-2 space-y-1 text-xs text-gray-500">
+																	<div className="mt-2 space-y-1 text-xs text-muted-foreground">
 																		<p>Signed in: {formatDateTime(sessionItem.createdAt)}</p>
 																		<p>Last activity: {formatDateTime(sessionItem.updatedAt)}</p>
 																		<p>Expires: {formatDateTime(sessionItem.expiresAt)}</p>
 																	</div>
 																	{isCurrentSession ? null : (
-																		<form action={revokeSessionAction} className="mt-3 flex justify-end">
+																		<form
+																			action={revokeSessionAction}
+																			className="mt-3 flex justify-end"
+																		>
 																			<input type="hidden" name="token" value={sessionItem.token} />
-																			<Button type="submit" variant="destructive" className="whitespace-nowrap px-3 py-1.5 text-xs">
+																			<Button
+																				type="submit"
+																				variant="destructive"
+																				className="whitespace-nowrap px-3 py-1.5 text-xs"
+																			>
 																				Revoke session
 																			</Button>
 																		</form>
@@ -238,20 +256,21 @@ export default async function ManageAccountPage() {
 								</section>
 
 								<aside className="space-y-6">
-									<Card className="border border-gray-100 shadow-sm">
+									<Card className="border border-border shadow-sm">
 										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">
+											<CardTitle className="text-lg font-semibold text-foreground">
 												Connected services
 											</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
+											<CardDescription className="text-sm text-muted-foreground">
 												BzBudget will list your bank feeds and integrations here.
 											</CardDescription>
 										</CardHeader>
-										<CardContent className="space-y-4 text-sm text-gray-600">
+										<CardContent className="space-y-4 text-sm text-muted-foreground">
 											<p>
-												Once account linking is enabled, you’ll be able to see and disconnect services from this panel.
+												Once account linking is enabled, you’ll be able to see and disconnect
+												services from this panel.
 											</p>
-											<div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
+											<div className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
 												No integrations connected yet.
 											</div>
 											<Button type="button" variant="default" className="w-full">
@@ -260,16 +279,21 @@ export default async function ManageAccountPage() {
 										</CardContent>
 									</Card>
 
-									<Card className="border border-gray-100 shadow-sm">
+									<Card className="border border-border shadow-sm">
 										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">Danger zone</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
-												Need to deactivate your account? You&rsquo;ll be able to undo this for 30 days.
+											<CardTitle className="text-lg font-semibold text-foreground">
+												Danger zone
+											</CardTitle>
+											<CardDescription className="text-sm text-muted-foreground">
+												Need to deactivate your account? You&rsquo;ll be able to undo this for 30
+												days.
 											</CardDescription>
 										</CardHeader>
 										<CardContent className="space-y-3">
-											<p className="text-xs text-gray-500">
-												Account deletion removes personal data and disconnects any linked services. You can restore your account by signing back in before the recovery period ends.
+											<p className="text-xs text-muted-foreground">
+												Account deletion removes personal data and disconnects any linked services.
+												You can restore your account by signing back in before the recovery period
+												ends.
 											</p>
 											<Button type="button" variant="destructive" className="w-full">
 												Delete account

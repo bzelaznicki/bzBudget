@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import type { BankAccountResponse } from "@/db/queries/accounts";
 import type { CurrencyResponse } from "@/db/queries/currencies";
 import { Button } from "@/components/ui/button";
+import { Money, Monogram, Panel } from "@/components/warm-ledger/primitives";
+import type { AccountBalance } from "@/db/queries/overview";
+import { formatMoney, monogram } from "@/lib/format";
 import {
 	Dialog,
 	DialogClose,
@@ -18,7 +21,10 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 
-type SerializableBankAccount = Omit<BankAccountResponse, "createdAt" | "updatedAt" | "deletedAt"> & {
+type SerializableBankAccount = Omit<
+	BankAccountResponse,
+	"createdAt" | "updatedAt" | "deletedAt"
+> & {
 	createdAt: string | null;
 	updatedAt: string | null;
 	deletedAt: string | null;
@@ -28,9 +34,15 @@ type SerializableBankAccount = Omit<BankAccountResponse, "createdAt" | "updatedA
 type AccountsListProps = {
 	accounts: SerializableBankAccount[];
 	currencies: CurrencyResponse[];
+	/** Account id -> running balance and this month's movement. */
+	balances: Record<string, Pick<AccountBalance, "balance" | "monthChange" | "currency">>;
 };
 
-export function AccountsList({ accounts: initialAccounts, currencies }: AccountsListProps) {
+export function AccountsList({
+	accounts: initialAccounts,
+	currencies,
+	balances,
+}: AccountsListProps) {
 	const router = useRouter();
 	const [accounts, setAccounts] = React.useState<SerializableBankAccount[]>(initialAccounts);
 	const [pendingDeletions, setPendingDeletions] = React.useState<Set<string>>(() => new Set());
@@ -133,47 +145,66 @@ export function AccountsList({ accounts: initialAccounts, currencies }: Accounts
 
 	return (
 		<>
-			{accounts.length === 0 ? (
-				<div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
-					No accounts yet. Use the form on the right to add your first account.
-				</div>
-			) : (
-				accounts.map((account) => {
-					const currency = currencyLookup.get(account.currenciesId);
-					const isDeleting = pendingDeletions.has(account.id);
+			<div className="flex flex-col gap-3">
+				{accounts.length === 0 ? (
+					<div className="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
+						No accounts yet. Add your first one below.
+					</div>
+				) : (
+					accounts.map((account) => {
+						const currency = currencyLookup.get(account.currenciesId);
+						const isDeleting = pendingDeletions.has(account.id);
+						const figures = balances[account.id];
+						const displayCurrency = figures?.currency ?? {
+							isoCode: currency?.isoCode ?? "",
+							symbol: currency?.symbol ?? "",
+							position: "before" as const,
+						};
 
-					return (
-						<div
-							key={account.id}
-							className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white/90 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-						>
-							<div>
-								<p className="text-sm font-medium text-gray-900">{account.name}</p>
-								<p className="text-xs text-gray-500">
-									{currency ? `${currency.symbol} ${currency.isoCode}` : "Unknown currency"}
-									{account.iban ? ` • IBAN ${account.iban}` : null}
-								</p>
-							</div>
-							<div className="text-right text-xs text-gray-400">
-								<p>Created {account.createdAtDisplay}</p>
-							</div>
-							<div className="text-right text-xs text-gray-400">
+						return (
+							<Panel
+								key={account.id}
+								className={`group flex items-center gap-4 px-5.5 py-4.5 ${isDeleting ? "opacity-50" : ""}`}
+							>
+								<Monogram label={monogram(account.name)} className="size-11 rounded-[13px]" />
+
+								<div className="min-w-0 flex-1 leading-snug">
+									<div className="truncate text-[15px] font-semibold">{account.name}</div>
+									<div className="text-muted-foreground truncate text-[12.5px]">
+										{currency ? `${currency.symbol} ${currency.isoCode}` : "Unknown currency"}
+										{account.iban ? ` · ${account.iban}` : ""}
+									</div>
+								</div>
+
+								<div className="flex-none text-right leading-tight">
+									<Money
+										amount={figures?.balance ?? 0}
+										currency={displayCurrency}
+										className="text-2xl"
+									/>
+									<div className="text-muted-foreground text-[11.5px]">
+										{figures && figures.monthChange !== 0
+											? `${formatMoney(figures.monthChange, displayCurrency, { signed: true })} this month`
+											: `Added ${account.createdAtDisplay}`}
+									</div>
+								</div>
+
 								<Button
 									variant="ghost"
 									size="icon"
-									className="size-8 text-destructive hover:text-destructive focus-visible:text-destructive"
+									className="text-muted-foreground hover:text-destructive size-8 flex-none opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
 									onClick={() => openDeleteDialog(account)}
 									disabled={isDeleting}
 									type="button"
-									aria-label="Delete account"
+									aria-label={`Delete ${account.name}`}
 								>
-									<IconTrash className={`size-4 ${isDeleting ? "opacity-50" : ""}`} />
+									<IconTrash className="size-4" />
 								</Button>
-							</div>
-						</div>
-					);
-				})
-			)}
+							</Panel>
+						);
+					})
+				)}
+			</div>
 
 			<Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
 				<DialogContent>

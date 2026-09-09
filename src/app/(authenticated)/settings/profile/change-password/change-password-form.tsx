@@ -32,7 +32,6 @@ export function ChangePasswordForm() {
 				newPassword,
 				currentPassword,
 				revokeOtherSessions: true,
-
 			});
 
 			if (error) {
@@ -58,7 +57,7 @@ export function ChangePasswordForm() {
 		<form className="space-y-5" onSubmit={handleSubmit}>
 			<div className="grid gap-4 sm:grid-cols-2">
 				<div className="grid gap-2 sm:col-span-2">
-					<Label htmlFor="current-password" className="text-sm font-medium text-gray-900">
+					<Label htmlFor="current-password" className="text-sm font-medium text-foreground">
 						Current password
 					</Label>
 					<Input
@@ -73,7 +72,7 @@ export function ChangePasswordForm() {
 				</div>
 
 				<div className="grid gap-2">
-					<Label htmlFor="new-password" className="text-sm font-medium text-gray-900">
+					<Label htmlFor="new-password" className="text-sm font-medium text-foreground">
 						New password
 					</Label>
 					<Input
@@ -88,7 +87,7 @@ export function ChangePasswordForm() {
 				</div>
 
 				<div className="grid gap-2">
-					<Label htmlFor="confirm-password" className="text-sm font-medium text-gray-900">
+					<Label htmlFor="confirm-password" className="text-sm font-medium text-foreground">
 						Confirm new password
 					</Label>
 					<Input
@@ -103,16 +102,16 @@ export function ChangePasswordForm() {
 				</div>
 			</div>
 
-			<div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
+			<div className="rounded-xl border border-border bg-income/10 px-4 py-3 text-sm text-income-foreground">
 				<p className="font-medium">Password tips</p>
-				<p className="text-emerald-800">
-					Use a mix of upper/lowercase letters, numbers, and symbols. Avoid reusing passwords from other
-					services.
+				<p className="text-income-foreground">
+					Use a mix of upper/lowercase letters, numbers, and symbols. Avoid reusing passwords from
+					other services.
 				</p>
 			</div>
 
-			<div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-				<label className="flex items-center gap-3 text-gray-700">
+			<div className="flex flex-col gap-3 rounded-lg border border-border bg-sunk px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+				<label className="flex items-center gap-3 text-secondary-foreground">
 					<Checkbox
 						id="sign-out-others"
 						checked={signOutOthers}
@@ -120,12 +119,12 @@ export function ChangePasswordForm() {
 					/>
 					<div className="flex flex-col">
 						<span className="font-medium">Sign out of other sessions</span>
-						<span className="text-xs text-gray-500">
+						<span className="text-xs text-muted-foreground">
 							Recommended if this password may be exposed elsewhere.
 						</span>
 					</div>
 				</label>
-				<span className="text-xs text-gray-500">
+				<span className="text-xs text-muted-foreground">
 					Current device remains signed in so you can continue working.
 				</span>
 			</div>

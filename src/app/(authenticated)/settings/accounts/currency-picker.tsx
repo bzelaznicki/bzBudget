@@ -43,7 +43,7 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 			<div className="relative">
 				<input
 					type="text"
-					className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
+					className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-secondary-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 					placeholder="Search currency (e.g. USD, Euro)"
 					autoComplete="off"
 					value={query}
@@ -65,9 +65,9 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 					}}
 				/>
 				{open ? (
-					<div className="absolute z-30 mt-2 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+					<div className="absolute z-30 mt-2 w-full overflow-hidden rounded-md border border-border bg-card shadow-lg">
 						{filtered.length === 0 ? (
-							<p className="px-3 py-2 text-sm text-gray-400">
+							<p className="px-3 py-2 text-sm text-muted-foreground">
 								No currencies match “{query.trim()}”
 							</p>
 						) : (
@@ -82,7 +82,7 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 											type="button"
 											role="option"
 											aria-selected={selected?.id === currency.id}
-											className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left hover:bg-emerald-50 focus:bg-emerald-50"
+											className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left hover:bg-sunk focus:bg-sunk"
 											onMouseDown={(event) => {
 												event.preventDefault();
 											}}
@@ -92,10 +92,10 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 												setOpen(false);
 											}}
 										>
-											<span className="font-medium text-gray-900">
+											<span className="font-medium text-foreground">
 												{formatCurrencyLabel(currency)}
 											</span>
-											<span className="text-xs text-gray-500">
+											<span className="text-xs text-muted-foreground">
 												{currency.symbol ? `Symbol ${currency.symbol}` : "No symbol available"}
 											</span>
 										</button>
@@ -106,7 +106,7 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 					</div>
 				) : null}
 			</div>
-			<p className="text-xs text-gray-500">
+			<p className="text-xs text-muted-foreground">
 				{selected
 					? `Selected currency: ${formatCurrencyLabel(selected)}`
 					: "Choose the currency to store balances in."}

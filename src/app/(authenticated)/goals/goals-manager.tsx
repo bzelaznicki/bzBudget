@@ -144,7 +144,7 @@ export function GoalsManager({
 											{money(goal.currentAmount)} saved of {money(goal.targetAmount)}
 										</p>
 										<progress
-											className="mt-2 h-3 w-full accent-emerald-600"
+											className="mt-2 h-3 w-full accent-[var(--income)]"
 											aria-label={`${goal.name} progress`}
 											max={100}
 											value={Math.min(percent, 100)}

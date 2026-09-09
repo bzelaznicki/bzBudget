@@ -8,6 +8,14 @@ import { toast } from "sonner";
 import type { BudgetWithSpending } from "@/db/queries/budgets";
 import { Button } from "@/components/ui/button";
 import {
+	BudgetStateLabel,
+	Panel,
+	ProgressRing,
+	budgetState,
+	budgetStateColor,
+} from "@/components/warm-ledger/primitives";
+import { type CurrencyFormat, formatMoney } from "@/lib/format";
+import {
 	Dialog,
 	DialogClose,
 	DialogContent,
@@ -36,9 +44,10 @@ import {
 
 type BudgetsListProps = {
 	budgets: BudgetWithSpending[];
+	currency: CurrencyFormat;
 };
 
-export function BudgetsList({ budgets: initialBudgets }: BudgetsListProps) {
+export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListProps) {
 	const router = useRouter();
 	const [budgets, setBudgets] = React.useState<BudgetWithSpending[]>(initialBudgets);
 	const [pendingDeletions, setPendingDeletions] = React.useState<Set<string>>(() => new Set());
@@ -207,106 +216,84 @@ export function BudgetsList({ budgets: initialBudgets }: BudgetsListProps) {
 		? pendingDeletions.has(budgetPendingDelete.id)
 		: false;
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-		}).format(amount);
-	};
-
-	const getProgressColor = (percentage: number) => {
-		if (percentage >= 100) return "bg-red-500";
-		if (percentage >= 80) return "bg-amber-500";
-		return "bg-emerald-500";
-	};
+	const formatCurrency = (amount: number) => formatMoney(amount, currency);
 
 	return (
 		<>
 			{budgets.length === 0 ? (
-				<div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
-					No budgets yet. Use the form on the right to add your first budget.
+				<div className="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
+					No budgets yet. Create one to start tracking a spending limit.
 				</div>
 			) : (
-				<div className="space-y-4">
+				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 					{budgets.map((budget) => {
 						const isDeleting = pendingDeletions.has(budget.id);
 						const displayName = budget.category?.name ?? "Overall";
-						const percentage = Math.min(budget.utilizationPercentage, 100);
+						const percentage = budget.utilizationPercentage;
+						const state = budgetState(percentage);
+						const limit = Number(budget.amount);
+						const remaining = limit - budget.currentSpending;
 
 						return (
-							<div
+							<Panel
 								key={budget.id}
-								className="rounded-lg border border-gray-200 bg-white/90 p-4 shadow-sm"
+								className={`group flex items-center gap-4 px-5 py-4.5 ${isDeleting ? "opacity-50" : ""}`}
 							>
-								<div className="flex items-start justify-between gap-4">
-									<div className="flex-1">
-										<div className="flex items-center gap-2">
-											<p className="text-sm font-medium text-gray-900">{displayName}</p>
-											<span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 capitalize">
-												{budget.period}
-											</span>
-											{budget.isOverBudget && (
-												<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
-													Exceeded
-												</span>
-											)}
-											{budget.isThresholdReached && !budget.isOverBudget && (
-												<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-600">
-													Alert
-												</span>
-											)}
-										</div>
-										<p className="mt-1 text-xs text-gray-500">
-											{budget.emailAlerts ? "Email alerts on" : "Email alerts off"} •{" "}
-											{budget.alertThreshold}% threshold
-										</p>
+								<ProgressRing
+									percentage={percentage}
+									size={66}
+									strokeWidth={9}
+									color={budgetStateColor(state)}
+									className="flex-none"
+								/>
+
+								<div className="min-w-0 flex-1">
+									<div className="flex items-baseline justify-between gap-2">
+										<span className="truncate text-sm font-semibold">{displayName}</span>
+										<span className="text-numeric flex-none text-[13px]">
+											{percentage.toFixed(0)}%
+										</span>
 									</div>
-									<div className="flex items-center gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="size-8 text-gray-500 hover:text-gray-700"
-											onClick={() => openEditDialog(budget)}
-											disabled={isDeleting}
-											type="button"
-											aria-label="Edit budget"
-										>
-											<IconEdit className={`size-4 ${isDeleting ? "opacity-50" : ""}`} />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="size-8 text-destructive hover:text-destructive focus-visible:text-destructive"
-											onClick={() => openDeleteDialog(budget)}
-											disabled={isDeleting}
-											type="button"
-											aria-label="Delete budget"
-										>
-											<IconTrash className={`size-4 ${isDeleting ? "opacity-50" : ""}`} />
-										</Button>
+									<div className="text-muted-foreground mt-0.5 text-[12.5px]">
+										{formatCurrency(budget.currentSpending)} of {formatCurrency(limit)}
+									</div>
+									<div className="mt-1.5">
+										<BudgetStateLabel
+											state={state}
+											detail={
+												remaining >= 0
+													? `${formatCurrency(remaining)} left`
+													: `${formatCurrency(Math.abs(remaining))} over`
+											}
+										/>
 									</div>
 								</div>
 
-								<div className="mt-4">
-									<div className="flex items-center justify-between text-sm">
-										<span className="text-gray-600">
-											{formatCurrency(budget.currentSpending)} spent
-										</span>
-										<span className="text-gray-900 font-medium">
-											{formatCurrency(Number(budget.amount))}
-										</span>
-									</div>
-									<div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-										<div
-											className={`h-full ${getProgressColor(budget.utilizationPercentage)} transition-all duration-300`}
-											style={{ width: `${percentage}%` }}
-										/>
-									</div>
-									<div className="mt-1 text-right text-xs text-gray-500">
-										{budget.utilizationPercentage.toFixed(1)}% used
-									</div>
+								<div className="flex flex-none flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="text-muted-foreground hover:text-foreground size-7"
+										onClick={() => openEditDialog(budget)}
+										disabled={isDeleting}
+										type="button"
+										aria-label={`Edit ${displayName} budget`}
+									>
+										<IconEdit className="size-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="text-muted-foreground hover:text-destructive size-7"
+										onClick={() => openDeleteDialog(budget)}
+										disabled={isDeleting}
+										type="button"
+										aria-label={`Delete ${displayName} budget`}
+									>
+										<IconTrash className="size-4" />
+									</Button>
 								</div>
-							</div>
+							</Panel>
 						);
 					})}
 				</div>

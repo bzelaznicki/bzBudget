@@ -1,17 +1,19 @@
-import { SiteHeader } from "@/components/site-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { createBankAccount, getUserBankAccounts } from "@/db/queries/accounts";
-import type { BankAccountResponse } from "@/db/queries/accounts";
-import { listCurrencies } from "@/db/queries/currencies";
-import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { CurrencyPicker } from "./currency-picker";
+
+import { SiteHeader } from "@/components/site-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Eyebrow, Money, Panel } from "@/components/warm-ledger/primitives";
+import type { BankAccountResponse } from "@/db/queries/accounts";
+import { createBankAccount, getUserBankAccounts } from "@/db/queries/accounts";
+import { listCurrencies } from "@/db/queries/currencies";
+import { getAccountBalances, getPrimaryCurrency } from "@/db/queries/overview";
+import { auth } from "@/lib/auth";
 import { AccountsList } from "./accounts-list";
+import { CurrencyPicker } from "./currency-picker";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 	year: "numeric",
@@ -57,9 +59,11 @@ export default async function AccountsPage() {
 		redirect("/login");
 	}
 
-	const [accounts, currencies] = await Promise.all([
+	const primaryCurrency = await getPrimaryCurrency(session.user.id);
+	const [accounts, currencies, balances] = await Promise.all([
 		getUserBankAccounts(session.user.id, 50, 0),
 		listCurrencies(),
+		getAccountBalances(session.user.id),
 	]);
 
 	const accountsList: BankAccountResponse[] = accounts ?? [];
@@ -71,71 +75,71 @@ export default async function AccountsPage() {
 		createdAtDisplay: formatAccountDate(account.createdAt),
 	}));
 
+	const balancesById = Object.fromEntries(
+		balances.map((entry) => [
+			entry.id,
+			{ balance: entry.balance, monthChange: entry.monthChange, currency: entry.currency },
+		]),
+	);
+
+	// Only accounts held in the primary currency roll up into the headline — bzBudget has
+	// no FX rates yet, so mixing currencies here would produce a meaningless number.
+	const primaryBalances = balances.filter(
+		(entry) => entry.currency.isoCode === primaryCurrency.isoCode,
+	);
+	const headlineTotal = primaryBalances.reduce((sum, entry) => sum + entry.balance, 0);
+	const currencyCount = new Set(balances.map((entry) => entry.currency.isoCode)).size;
+
 	return (
 		<>
-			<SiteHeader title="Accounts" />
-			<div className="flex flex-1 flex-col">
-				<div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-					<div className="px-4 lg:px-6">
-						<div className="flex flex-col gap-6">
-							<div className="rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm">
-								<p className="text-sm text-gray-500">Accounts</p>
-								<h1 className="text-3xl font-semibold text-gray-900">Manage financial accounts</h1>
-								<p className="mt-2 max-w-xl text-sm text-gray-500">
-									Add accounts manually for now. Once integrations are enabled, you&apos;ll be able to connect banks directly.
-								</p>
-							</div>
-
-							<div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-								<section className="space-y-6">
-									<Card className="border border-gray-100 shadow-sm">
-										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">Your accounts</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
-												Track balances, transactions, and budgets by linking each account you manage in bzBudget.
-											</CardDescription>
-										</CardHeader>
-										<CardContent className="grid gap-4">
-											<AccountsList accounts={serializedAccounts} currencies={currencies} />
-										</CardContent>
-									</Card>
-								</section>
-
-								<aside className="space-y-6">
-									<Card className="border border-gray-100 shadow-sm">
-										<CardHeader>
-											<CardTitle className="text-lg font-semibold text-gray-900">Add account</CardTitle>
-											<CardDescription className="text-sm text-gray-500">
-												Start tracking a new account by entering a name and choosing a currency. You can update details later.
-											</CardDescription>
-										</CardHeader>
-										<CardContent>
-											<form action={createAccountAction} className="grid gap-4">
-												<div className="grid gap-2">
-													<Label htmlFor="account-name">Account name</Label>
-													<Input id="account-name" name="name" placeholder="e.g. Checking account" required />
-												</div>
-												<div className="grid gap-2">
-													<Label htmlFor="account-currency">Currency</Label>
-													<CurrencyPicker currencies={currencies} />
-												</div>
-												<div className="grid gap-2">
-													<Label htmlFor="account-iban">
-														IBAN <span className="text-xs text-gray-400">(optional)</span>
-													</Label>
-													<Input id="account-iban" name="iban" placeholder="IBAN" autoComplete="off" />
-												</div>
-												<Button type="submit" variant="default" className="w-full">
-													Save account
-												</Button>
-											</form>
-										</CardContent>
-									</Card>
-								</aside>
-							</div>
-						</div>
+			<SiteHeader title="Accounts" showAddTransaction={false} />
+			<div className="flex flex-col gap-4.5 px-7 py-6">
+				<div>
+					<Eyebrow>Accounts</Eyebrow>
+					<div className="mt-1">
+						<Money amount={headlineTotal} currency={primaryCurrency} className="text-[40px]" />
+					</div>
+					<div className="text-muted-foreground mt-1 text-[13px]">
+						{accountsList.length === 0
+							? "Nothing tracked yet"
+							: `${accountsList.length} ${accountsList.length === 1 ? "account" : "accounts"} · ${currencyCount} ${
+									currencyCount === 1 ? "currency" : "currencies"
+								}`}
+						{currencyCount > 1 ? ` · total shown in ${primaryCurrency.isoCode}` : ""}
 					</div>
 				</div>
+
+				<AccountsList
+					accounts={serializedAccounts}
+					currencies={currencies}
+					balances={balancesById}
+				/>
+
+				<Panel className="px-5.5 py-5">
+					<h2 className="mb-1 text-sm font-semibold">Add an account manually</h2>
+					<p className="text-muted-foreground mb-4 text-[12.5px]">
+						Bank connections arrive later — name it, pick a currency, done.
+					</p>
+					<form action={createAccountAction} className="grid gap-4 sm:grid-cols-3">
+						<div className="grid gap-2">
+							<Label htmlFor="account-name">Account name</Label>
+							<Input id="account-name" name="name" placeholder="e.g. Main checking" required />
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="account-currency">Currency</Label>
+							<CurrencyPicker currencies={currencies} />
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="account-iban">
+								IBAN <span className="text-muted-foreground text-xs">(optional)</span>
+							</Label>
+							<Input id="account-iban" name="iban" placeholder="IBAN" autoComplete="off" />
+						</div>
+						<div className="sm:col-span-3">
+							<Button type="submit">Save account</Button>
+						</div>
+					</form>
+				</Panel>
 			</div>
 		</>
 	);
