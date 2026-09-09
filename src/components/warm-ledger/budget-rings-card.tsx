@@ -10,9 +10,21 @@ import {
 } from "@/components/warm-ledger/primitives";
 import type { BudgetWithSpending } from "@/db/queries/budgets";
 
-/** The four-up ring summary on the overview. */
+/** How many rings fit across the card before it stops being readable. */
+const RINGS_SHOWN = 4;
+
+/**
+ * The ring summary on the overview.
+ *
+ * Takes every budget, not a pre-truncated slice: the on-track count describes all of them,
+ * so it agrees with the budgets page, while only the busiest few get a ring.
+ */
 export function BudgetRingsCard({ budgets }: { budgets: BudgetWithSpending[] }) {
 	const onTrack = budgets.filter((budget) => !budget.isOverBudget && !budget.isThresholdReached);
+	const busiest = [...budgets]
+		.sort((a, b) => b.utilizationPercentage - a.utilizationPercentage)
+		.slice(0, RINGS_SHOWN);
+	const hidden = budgets.length - busiest.length;
 
 	return (
 		<Panel className="p-5">
@@ -31,7 +43,7 @@ export function BudgetRingsCard({ budgets }: { budgets: BudgetWithSpending[] }) 
 				</EmptyHint>
 			) : (
 				<div className="grid grid-cols-4 gap-2.5">
-					{budgets.slice(0, 4).map((budget) => {
+					{busiest.map((budget) => {
 						const percentage = budget.utilizationPercentage;
 
 						return (
@@ -51,6 +63,15 @@ export function BudgetRingsCard({ budgets }: { budgets: BudgetWithSpending[] }) 
 					})}
 				</div>
 			)}
+
+			{hidden > 0 ? (
+				<Link
+					href="/settings/budgets"
+					className="text-muted-foreground hover:text-foreground mt-3.5 block text-[11.5px]"
+				>
+					+{hidden} more
+				</Link>
+			) : null}
 		</Panel>
 	);
 }
