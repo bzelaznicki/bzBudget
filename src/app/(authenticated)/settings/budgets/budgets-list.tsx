@@ -230,7 +230,7 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 						const isDeleting = pendingDeletions.has(budget.id);
 						const displayName = budget.category?.name ?? "Overall";
 						const percentage = budget.utilizationPercentage;
-						const state = budgetState(percentage);
+						const state = budgetState(budget);
 						const limit = Number(budget.amount);
 						const remaining = limit - budget.currentSpending;
 
@@ -256,6 +256,7 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 									</div>
 									<div className="text-muted-foreground mt-0.5 text-[12.5px]">
 										{formatCurrency(budget.currentSpending)} of {formatCurrency(limit)}
+										<span className="capitalize"> · {budget.period}</span>
 									</div>
 									<div className="mt-1.5">
 										<BudgetStateLabel
@@ -269,7 +270,7 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 									</div>
 								</div>
 
-								<div className="flex flex-none flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+								<div className="flex flex-none flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 									<Button
 										variant="ghost"
 										size="icon"

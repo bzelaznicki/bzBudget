@@ -127,7 +127,7 @@ export default async function AccountsPage() {
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="account-currency">Currency</Label>
-							<CurrencyPicker currencies={currencies} />
+							<CurrencyPicker currencies={currencies} id="account-currency" />
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="account-iban">

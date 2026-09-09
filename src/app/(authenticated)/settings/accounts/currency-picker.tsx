@@ -5,6 +5,8 @@ import type { CurrencyResponse } from "@/db/queries/currencies";
 
 type CurrencyPickerProps = {
 	currencies: CurrencyResponse[];
+	/** Applied to the search input so an external <Label htmlFor> resolves to it. */
+	id?: string;
 };
 
 function formatCurrencyLabel(currency: CurrencyResponse) {
@@ -15,7 +17,7 @@ function normalise(value: string) {
 	return value.trim().toLowerCase();
 }
 
-export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
+export function CurrencyPicker({ currencies, id }: CurrencyPickerProps) {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<CurrencyResponse | null>(null);
@@ -43,6 +45,7 @@ export function CurrencyPicker({ currencies }: CurrencyPickerProps) {
 			<div className="relative">
 				<input
 					type="text"
+					id={id}
 					className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-secondary-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 					placeholder="Search currency (e.g. USD, Euro)"
 					autoComplete="off"

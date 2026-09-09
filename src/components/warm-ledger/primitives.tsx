@@ -123,9 +123,17 @@ const BUDGET_STATE_STYLES: Record<BudgetState, { label: string; className: strin
 	exceeded: { label: "Exceeded", className: "text-destructive" },
 };
 
-export function budgetState(percentage: number): BudgetState {
-	if (percentage >= 100) return "exceeded";
-	if (percentage >= 80) return "threshold";
+/**
+ * Derives the verdict from the flags the budget query already computed, so a card agrees
+ * with the on-track counts elsewhere. Each budget carries its own `alertThreshold`, so a
+ * fixed 80% cutoff here would disagree with a budget that warns at, say, 60%.
+ */
+export function budgetState(budget: {
+	isOverBudget: boolean;
+	isThresholdReached: boolean;
+}): BudgetState {
+	if (budget.isOverBudget) return "exceeded";
+	if (budget.isThresholdReached) return "threshold";
 	return "on-track";
 }
 
@@ -167,7 +175,9 @@ export function ProgressRing({
 }) {
 	const radius = 30;
 	const circumference = 2 * Math.PI * radius;
-	const filled = (Math.min(percentage, 100) / 100) * circumference;
+	// Clamped at both ends: a refund-heavy category can go negative, which would
+	// otherwise produce a negative dash length.
+	const filled = (Math.min(Math.max(percentage, 0), 100) / 100) * circumference;
 
 	return (
 		<svg

@@ -192,7 +192,7 @@ export function AccountsList({
 								<Button
 									variant="ghost"
 									size="icon"
-									className="text-muted-foreground hover:text-destructive size-8 flex-none opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+									className="text-muted-foreground hover:text-destructive size-8 flex-none opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
 									onClick={() => openDeleteDialog(account)}
 									disabled={isDeleting}
 									type="button"

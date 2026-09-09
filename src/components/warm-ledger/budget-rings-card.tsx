@@ -38,7 +38,7 @@ export function BudgetRingsCard({ budgets }: { budgets: BudgetWithSpending[] }) 
 							<div key={budget.id} className="flex flex-col items-center gap-2">
 								<ProgressRing
 									percentage={percentage}
-									color={budgetStateColor(budgetState(percentage))}
+									color={budgetStateColor(budgetState(budget))}
 								/>
 								<div className="text-center leading-tight">
 									<div className="truncate text-[11.5px] font-medium">

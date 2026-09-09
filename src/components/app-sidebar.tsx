@@ -23,8 +23,9 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { dashboardExpensesSummary, dashboardIncomeSummary } from "@/db/queries/dashboard";
-import { getPrimaryCurrency } from "@/db/queries/overview";
+import { getPrimaryCurrency, pickCurrencyRow } from "@/db/queries/overview";
 import { auth } from "@/lib/auth";
+import { daysRemainingInMonth } from "@/lib/format";
 
 const NAV_ITEMS: NavItem[] = [
 	{ title: "Overview", url: "/dashboard", icon: <IconLayoutGrid /> },
@@ -33,11 +34,6 @@ const NAV_ITEMS: NavItem[] = [
 	{ title: "Accounts", url: "/settings/accounts", icon: <IconBuildingBank /> },
 	{ title: "Goals", url: "/goals", icon: <IconTarget /> },
 ];
-
-function daysRemainingInMonth(now = new Date()): number {
-	const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-	return Math.max(lastDay - now.getDate() + 1, 1);
-}
 
 export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	const session = await auth.api.getSession({ headers: await headers() });
@@ -53,11 +49,8 @@ export async function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 		dashboardExpensesSummary(user.id),
 	]);
 
-	const pick = <T extends { currency: { isoCode: string } }>(rows: T[] | null) =>
-		rows?.find((row) => row.currency.isoCode === currency.isoCode) ?? rows?.[0] ?? null;
-
-	const incomeTotal = pick(income)?.current ?? 0;
-	const expensesTotal = pick(expenses)?.current ?? 0;
+	const incomeTotal = pickCurrencyRow(income, currency)?.current ?? 0;
+	const expensesTotal = pickCurrencyRow(expenses, currency)?.current ?? 0;
 
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>

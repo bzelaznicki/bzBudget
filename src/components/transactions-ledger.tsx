@@ -50,10 +50,17 @@ type LedgerEntry = TransactionResponse & {
 	bookedAtDate: Date;
 };
 
+type CurrencySubtotal = {
+	isoCode: string;
+	amount: number;
+	currency: LedgerEntry["currency"];
+};
+
 type DayGroup = {
 	key: string;
 	heading: string;
-	total: number;
+	/** One subtotal per currency present that day — they are not summable together. */
+	subtotals: CurrencySubtotal[];
 	entries: LedgerEntry[];
 };
 
@@ -71,9 +78,14 @@ function toEntry(transaction: TransactionResponseLike): LedgerEntry {
 	};
 }
 
-/** Buckets entries by calendar day, newest first, with each day's net movement. */
+/**
+ * Buckets entries by calendar day, newest first.
+ *
+ * A day's net movement is reported per currency rather than as one number: without FX
+ * rates, adding €10 to £10 produces a figure that is wrong under either symbol.
+ */
 function groupByDay(entries: LedgerEntry[]): DayGroup[] {
-	const groups = new Map<string, DayGroup>();
+	const groups = new Map<string, { key: string; heading: string; entries: LedgerEntry[] }>();
 
 	for (const entry of entries) {
 		const key = entry.bookedAtDate.toDateString();
@@ -81,21 +93,38 @@ function groupByDay(entries: LedgerEntry[]): DayGroup[] {
 
 		if (group) {
 			group.entries.push(entry);
-			group.total += entry.signedAmount;
 		} else {
 			groups.set(key, {
 				key,
 				heading: formatDayHeading(entry.bookedAtDate),
-				total: entry.signedAmount,
 				entries: [entry],
 			});
 		}
 	}
 
-	return Array.from(groups.values()).sort(
-		(a, b) =>
-			(b.entries[0]?.bookedAtDate.getTime() ?? 0) - (a.entries[0]?.bookedAtDate.getTime() ?? 0),
-	);
+	return Array.from(groups.values())
+		.map((group) => {
+			const byCurrency = new Map<string, CurrencySubtotal>();
+
+			for (const entry of group.entries) {
+				const existing = byCurrency.get(entry.currency.isoCode);
+				if (existing) {
+					existing.amount += entry.signedAmount;
+				} else {
+					byCurrency.set(entry.currency.isoCode, {
+						isoCode: entry.currency.isoCode,
+						amount: entry.signedAmount,
+						currency: entry.currency,
+					});
+				}
+			}
+
+			return { ...group, subtotals: Array.from(byCurrency.values()) };
+		})
+		.sort(
+			(a, b) =>
+				(b.entries[0]?.bookedAtDate.getTime() ?? 0) - (a.entries[0]?.bookedAtDate.getTime() ?? 0),
+		);
 }
 
 export function TransactionsLedger({
@@ -274,8 +303,12 @@ export function TransactionsLedger({
 						<section key={group.key}>
 							<div className="bg-sunk/60 border-border flex items-center justify-between border-b px-5.5 py-3">
 								<span className="text-eyebrow text-[12px] tracking-[0.06em]">{group.heading}</span>
-								<span className="text-numeric text-secondary-foreground text-[12.5px]">
-									{formatMoney(group.total, group.entries[0].currency, { signed: true })}
+								<span className="text-numeric text-secondary-foreground flex gap-2.5 text-[12.5px]">
+									{group.subtotals.map((subtotal) => (
+										<span key={subtotal.isoCode}>
+											{formatMoney(subtotal.amount, subtotal.currency, { signed: true })}
+										</span>
+									))}
 								</span>
 							</div>
 

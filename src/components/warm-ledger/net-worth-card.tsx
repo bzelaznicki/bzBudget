@@ -8,7 +8,9 @@ const VIEW_WIDTH = 700;
 const VIEW_HEIGHT = 140;
 const VERTICAL_PADDING = 8;
 
-const MONTH_LABEL = new Intl.DateTimeFormat("en-GB", { month: "short" });
+// UTC, because getNetWorthSeries builds its month keys with Date.UTC — formatting them
+// in a timezone behind UTC would shift every label back a month.
+const MONTH_LABEL = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
 
 /**
  * Builds the area path. Returns null when there is nothing to plot, so the card can fall

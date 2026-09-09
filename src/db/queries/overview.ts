@@ -48,6 +48,20 @@ export type AccountBalance = {
 
 const FALLBACK_CURRENCY: CurrencyDisplay = { isoCode: "EUR", symbol: "€", position: "before" };
 
+/**
+ * Picks the row denominated in `currency`, or null.
+ *
+ * Deliberately has no "first row" fallback: the per-currency summaries are only
+ * comparable within one currency, so showing a GBP total under a EUR symbol would be
+ * worse than showing nothing.
+ */
+export function pickCurrencyRow<T extends { currency: { isoCode: string } }>(
+	rows: T[] | null | undefined,
+	currency: CurrencyDisplay,
+): T | null {
+	return rows?.find((row) => row.currency.isoCode === currency.isoCode) ?? null;
+}
+
 /** Signed amount: incoming counts up, outgoing counts down. */
 const SIGNED_AMOUNT = sql<string>`sum(
 	case when ${transactions.type} = 'incoming' then ${transactions.amount} else -${transactions.amount} end
@@ -230,16 +244,22 @@ export async function getAccountBalances(userId: string): Promise<AccountBalance
 			isoCode: currencies.isoCode,
 			symbol: currencies.symbol,
 			position: currencies.position,
+			// Only transactions booked in the account's own currency count towards its
+			// balance — a transaction may carry a different currency, and summing those
+			// together would produce a figure that means nothing under either symbol.
 			balance: sql<string>`coalesce((
 				select sum(case when t.type = 'incoming' then t.amount else -t.amount end)
 				from transactions t
-				where t.accounts_id = ${bankAccounts.id} and t.deleted_at is null
+				where t.accounts_id = ${bankAccounts.id}
+					and t.deleted_at is null
+					and t.currencies_id = ${bankAccounts.currenciesId}
 			), 0)`,
 			monthChange: sql<string>`coalesce((
 				select sum(case when t.type = 'incoming' then t.amount else -t.amount end)
 				from transactions t
 				where t.accounts_id = ${bankAccounts.id}
 					and t.deleted_at is null
+					and t.currencies_id = ${bankAccounts.currenciesId}
 					and t.booked_at >= ${monthStart}
 			), 0)`,
 		})

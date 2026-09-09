@@ -16,16 +16,11 @@ import {
 	getCategorySpendBreakdown,
 	getNetWorthSeries,
 	getPrimaryCurrency,
+	pickCurrencyRow,
 } from "@/db/queries/overview";
 import { countUserTransactions, getUserTransactions } from "@/db/queries/transactions";
 import { auth } from "@/lib/auth";
-import { formatMoney, formatPercent, formatRowTimestamp } from "@/lib/format";
-
-/** Days left in the current month, today included. */
-function daysRemainingInMonth(now = new Date()): number {
-	const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-	return Math.max(lastDay - now.getDate() + 1, 1);
-}
+import { daysRemainingInMonth, formatMoney, formatPercent, formatRowTimestamp } from "@/lib/format";
 
 export default async function DashboardPage() {
 	const session = await auth.api.getSession({ headers: await headers() });
@@ -49,11 +44,8 @@ export default async function DashboardPage() {
 			countUserTransactions({ usersId: userId }),
 		]);
 
-	const matchCurrency = <T extends { currency: { isoCode: string } }>(rows: T[] | null) =>
-		rows?.find((row) => row.currency.isoCode === currency.isoCode) ?? rows?.[0] ?? null;
-
-	const incomeEntry = matchCurrency(income);
-	const expensesEntry = matchCurrency(expenses);
+	const incomeEntry = pickCurrencyRow(income, currency);
+	const expensesEntry = pickCurrencyRow(expenses, currency);
 	const incomeTotal = incomeEntry?.current ?? 0;
 	const expensesTotal = expensesEntry?.current ?? 0;
 	const leftToSpend = incomeTotal - expensesTotal;

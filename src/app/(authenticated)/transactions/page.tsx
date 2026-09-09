@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { TransactionsLedger } from "@/components/transactions-ledger";
 import { getUserBankAccounts } from "@/db/queries/accounts";
 import { dashboardExpensesSummary, dashboardIncomeSummary } from "@/db/queries/dashboard";
-import { getPrimaryCurrency } from "@/db/queries/overview";
+import { getPrimaryCurrency, pickCurrencyRow } from "@/db/queries/overview";
 import { countUserTransactions } from "@/db/queries/transactions";
 import { auth } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
@@ -27,11 +27,8 @@ export default async function TransactionsPage() {
 		dashboardExpensesSummary(userId),
 	]);
 
-	const pick = <T extends { currency: { isoCode: string } }>(rows: T[] | null) =>
-		rows?.find((row) => row.currency.isoCode === currency.isoCode) ?? rows?.[0] ?? null;
-
-	const outgoing = pick(expenses)?.current ?? 0;
-	const incoming = pick(income)?.current ?? 0;
+	const outgoing = pickCurrencyRow(expenses, currency)?.current ?? 0;
+	const incoming = pickCurrencyRow(income, currency)?.current ?? 0;
 
 	const accountNames = Object.fromEntries(
 		(accounts ?? []).map((account) => [account.id, account.name]),

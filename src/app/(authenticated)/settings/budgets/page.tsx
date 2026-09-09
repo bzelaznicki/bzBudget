@@ -7,14 +7,9 @@ import { listBudgetsWithSpending } from "@/db/queries/budgets";
 import { listUserCategories } from "@/db/queries/categories";
 import { getPrimaryCurrency } from "@/db/queries/overview";
 import { auth } from "@/lib/auth";
-import { formatMoney } from "@/lib/format";
+import { daysRemainingInMonth, formatMoney } from "@/lib/format";
 import { BudgetsList } from "./budgets-list";
 import { CreateBudgetForm } from "./create-budget-form";
-
-function daysRemainingInMonth(now = new Date()): number {
-	const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-	return Math.max(lastDay - now.getDate() + 1, 1);
-}
 
 export default async function BudgetsPage() {
 	const session = await auth.api.getSession({ headers: await headers() });
@@ -30,11 +25,17 @@ export default async function BudgetsPage() {
 	]);
 
 	const budgetList = budgets ?? [];
-	const spent = budgetList.reduce((sum, budget) => sum + budget.currentSpending, 0);
-	const allocated = budgetList.reduce((sum, budget) => sum + Number(budget.amount), 0);
-	const onTrack = budgetList.filter(
+
+	// The headline is about this month, so weekly and yearly budgets stay out of it —
+	// folding a yearly limit into a monthly total would badly overstate what's allocated.
+	// Their cards still appear below, each labelled with its own period.
+	const monthly = budgetList.filter((budget) => budget.period === "monthly");
+	const spent = monthly.reduce((sum, budget) => sum + budget.currentSpending, 0);
+	const allocated = monthly.reduce((sum, budget) => sum + Number(budget.amount), 0);
+	const onTrack = monthly.filter(
 		(budget) => !budget.isOverBudget && !budget.isThresholdReached,
 	).length;
+	const otherPeriods = budgetList.length - monthly.length;
 
 	return (
 		<>
@@ -51,9 +52,12 @@ export default async function BudgetsPage() {
 							</span>
 						</div>
 						<div className="text-muted-foreground mt-1 text-[13px]">
-							{budgetList.length === 0
-								? "No budgets set yet"
-								: `${onTrack} of ${budgetList.length} on track · ${daysRemainingInMonth()} days remaining`}
+							{monthly.length === 0
+								? budgetList.length === 0
+									? "No budgets set yet"
+									: "No monthly budgets set yet"
+								: `${onTrack} of ${monthly.length} on track · ${daysRemainingInMonth()} days remaining`}
+							{otherPeriods > 0 ? ` · ${otherPeriods} on another period, shown below` : ""}
 						</div>
 					</div>
 				</div>

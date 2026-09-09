@@ -63,6 +63,12 @@ export function monogram(name: string): string {
 	return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+/** Days left in the current month, today included. */
+export function daysRemainingInMonth(now = new Date()): number {
+	const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+	return Math.max(lastDay - now.getDate() + 1, 1);
+}
+
 export function formatPercent(value: number, decimals = 1): string {
 	const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(decimals);
 	return value > 0 ? `+${rounded}%` : `${rounded}%`;
