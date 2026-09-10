@@ -10,7 +10,7 @@ import { SpendBreakdownCard } from "@/components/warm-ledger/spend-breakdown-car
 import { StatCard } from "@/components/warm-ledger/stat-card";
 import type { LedgerRow } from "@/components/warm-ledger/transaction-row";
 import { getUserBankAccounts } from "@/db/queries/accounts";
-import { getTopBudgetsByUtilization } from "@/db/queries/budgets";
+import { listBudgetsWithSpending } from "@/db/queries/budgets";
 import { dashboardExpensesSummary, dashboardIncomeSummary } from "@/db/queries/dashboard";
 import {
 	getCategorySpendBreakdown,
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
 		await Promise.all([
 			getNetWorthSeries(userId, 12, currency),
 			getCategorySpendBreakdown(userId, 4, currency),
-			getTopBudgetsByUtilization(userId, 4),
+			listBudgetsWithSpending(userId),
 			dashboardIncomeSummary(userId),
 			dashboardExpensesSummary(userId),
 			getUserTransactions({ usersId: userId, limit: 5 }),
