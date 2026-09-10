@@ -59,6 +59,9 @@ try {
 	const subscriptions = category("subscriptions & media");
 	const household = category("home & supplies");
 	const entertainment = category("entertainment");
+	// Foreign-currency rows go here. Budget spending is summed without FX conversion, so a
+	// budgeted category holding two currencies would show a total that means nothing.
+	const travel = category("travel");
 
 	await sql`delete from transactions where users_id = ${user.id}`;
 	await sql`delete from budgets where users_id = ${user.id}`;
@@ -81,12 +84,13 @@ try {
 	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
 	/**
-	 * A date `monthsAgo` months back on the given day. Days in the current month are pulled
-	 * back to today at the latest, so the fixture never contains future-dated activity.
+	 * A date `monthsAgo` months back on the given day and hour, clamped so it never lands in
+	 * the future — clamping the day alone is not enough, since an 18:00 entry for today is
+	 * still ahead of a morning run.
 	 */
 	const at = (monthsAgo, day, hour = 12) => {
-		const cappedDay = monthsAgo === 0 ? Math.min(day, now.getDate()) : day;
-		return new Date(now.getFullYear(), now.getMonth() - monthsAgo, cappedDay, hour);
+		const candidate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, day, hour);
+		return candidate > now ? new Date(now) : candidate;
 	};
 
 	const rows = [];
@@ -147,7 +151,7 @@ try {
 			42 + (m % 4) * 9,
 			"Pret A Manger",
 			"Lunch",
-			dining,
+			travel,
 			at(m, 11, 13),
 			"outgoing",
 		);
@@ -158,7 +162,7 @@ try {
 	const hoursAgo = (h) => new Date(now.getTime() - h * 3600 * 1000);
 	add("Main checking", 62.4, "Rewe", "Weekly shop", groceries, hoursAgo(3), "outgoing");
 	add("Main checking", 2.99, "iCloud", "200 GB storage", subscriptions, hoursAgo(6), "outgoing");
-	add("Travel card", 49, "Trainline", "Return to Manchester", transport, hoursAgo(20), "outgoing");
+	add("Travel card", 49, "Trainline", "Return to Manchester", travel, hoursAgo(20), "outgoing");
 	add("Main checking", 88.4, "IKEA", "Shelving", household, hoursAgo(30), "outgoing");
 
 	for (const row of rows) {
@@ -181,6 +185,7 @@ try {
 	const spentThisMonth = new Map();
 	for (const row of rows) {
 		if (row.type !== "outgoing" || !row.categories_id) continue;
+		if (row.currencies_id !== currency.EUR) continue;
 		if (row.booked_at < monthStart) continue;
 		const running = spentThisMonth.get(row.categories_id) ?? 0;
 		spentThisMonth.set(row.categories_id, running + Number(row.amount));
