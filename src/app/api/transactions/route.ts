@@ -1,3 +1,7 @@
+import {
+	transactionFiltersSchema,
+	transactionQueryFilters,
+} from "@/lib/validation/transaction-filters";
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -111,34 +115,24 @@ export async function GET(req: NextRequest) {
 
 	if (!session) return respondWithError(401, "Unauthorized");
 
-	const queryParams = req.nextUrl.searchParams;
-	const page = queryParams.get("page") ?? "1";
-	const perPage = queryParams.get("perPage");
-
-	let pageInt = parseInt(page);
-	if (isNaN(pageInt)) return respondWithError(400, "Page must be a number");
-	if (pageInt < 1) pageInt = 1;
-
-	let perPageInt = parseInt(perPage ?? "10");
-	if (isNaN(perPageInt)) return respondWithError(400, "Number per page must be a number");
-
-	if (perPageInt >= 100) perPageInt = 100;
-	if (perPageInt < 1) perPageInt = 1;
-	const limit = perPageInt;
-	const offset = limit * (pageInt - 1);
+	const parsed = transactionFiltersSchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
+	if (!parsed.success)
+		return respondWithError(400, parsed.error.issues[0]?.message ?? "Invalid filters");
+	const { page, perPage } = parsed.data;
+	const filters = { usersId: session.user.id, ...transactionQueryFilters(parsed.data) };
+	const limit = perPage;
+	const offset = limit * (page - 1);
 
 	try {
 		const transactions = await getUserTransactions({
-			usersId: session.user.id,
+			...filters,
 			limit,
 			offset,
 		});
 
-		const totalCount = await countUserTransactions({
-			usersId: session.user.id,
-		});
+		const totalCount = await countUserTransactions(filters);
 
-		const pages = Math.ceil(totalCount / perPageInt);
+		const pages = Math.ceil(totalCount / perPage);
 		const res = {
 			total: totalCount,
 			pages,

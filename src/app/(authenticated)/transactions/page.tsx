@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { listUserCategories } from "@/db/queries/categories";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -20,11 +22,12 @@ export default async function TransactionsPage() {
 	const userId = session.user.id;
 	const currency = await getPrimaryCurrency(userId);
 
-	const [accounts, count, income, expenses] = await Promise.all([
+	const [accounts, count, income, expenses, categories] = await Promise.all([
 		getUserBankAccounts(userId, 100, 0),
 		countUserTransactions({ usersId: userId }),
 		dashboardIncomeSummary(userId),
 		dashboardExpensesSummary(userId),
+		listUserCategories(userId),
 	]);
 
 	const outgoing = pickCurrencyRow(expenses, currency)?.current ?? 0;
@@ -44,7 +47,9 @@ export default async function TransactionsPage() {
 				)} in this month`}
 			/>
 			<div className="px-7 py-5.5">
-				<TransactionsLedger accountNames={accountNames} />
+				<Suspense fallback={<p>Loading transactions…</p>}>
+					<TransactionsLedger accountNames={accountNames} categories={categories} />
+				</Suspense>
 			</div>
 		</>
 	);
