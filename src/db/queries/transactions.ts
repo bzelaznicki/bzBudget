@@ -1,4 +1,19 @@
-import { and, asc, desc, eq, gte, lte, count, isNotNull, isNull, sql, sum } from "drizzle-orm";
+import {
+	and,
+	ilike,
+	or,
+	lt,
+	asc,
+	desc,
+	eq,
+	gte,
+	lte,
+	count,
+	isNotNull,
+	isNull,
+	sql,
+	sum,
+} from "drizzle-orm";
 import { db } from "../db";
 import { transactions, currencies, categories } from "../schema";
 
@@ -30,6 +45,10 @@ export interface TransactionResponse {
 
 export interface GetTransactionsArgs {
 	usersId: string;
+	search?: string;
+	categoryId?: string;
+	accountId?: string;
+	dateBefore?: Date;
 	dateFrom?: Date;
 	dateTo?: Date;
 	limit?: number | null;
@@ -41,7 +60,10 @@ export interface GetTransactionsArgs {
 	dir?: "asc" | "desc" | null;
 }
 
-export type CountTransactionsArgs = Pick<GetTransactionsArgs, "usersId" | "dateFrom" | "dateTo">;
+export type CountTransactionsArgs = Pick<
+	GetTransactionsArgs,
+	"usersId" | "dateFrom" | "dateTo" | "dateBefore" | "search" | "categoryId" | "accountId"
+>;
 
 export async function createTransaction(
 	userId: string,
@@ -107,14 +129,14 @@ export async function createTransaction(
 			.limit(1),
 		transaction.categoriesId
 			? db
-				.select({
-					id: categories.id,
-					name: categories.name,
-					type: categories.type,
-				})
-				.from(categories)
-				.where(eq(categories.id, transaction.categoriesId))
-				.limit(1)
+					.select({
+						id: categories.id,
+						name: categories.name,
+						type: categories.type,
+					})
+					.from(categories)
+					.where(eq(categories.id, transaction.categoriesId))
+					.limit(1)
 			: Promise.resolve([]),
 	]);
 
@@ -126,10 +148,10 @@ export async function createTransaction(
 	const category =
 		categoryResult.length > 0
 			? {
-				id: categoryResult[0].id,
-				name: categoryResult[0].name,
-				type: categoryResult[0].type,
-			}
+					id: categoryResult[0].id,
+					name: categoryResult[0].name,
+					type: categoryResult[0].type,
+				}
 			: null;
 
 	return {
@@ -186,13 +208,7 @@ export async function getUserTransactions(
 			orderField = desc(transactions.bookedAt);
 	}
 
-	const filters = [eq(transactions.usersId, args.usersId)];
-	if (args.dateFrom) {
-		filters.push(gte(transactions.bookedAt, args.dateFrom));
-	}
-	if (args.dateTo) {
-		filters.push(lte(transactions.bookedAt, args.dateTo));
-	}
+	const filters = transactionFilters(args);
 	if (!args.status || args.status === "active") {
 		filters.push(isNull(transactions.deletedAt));
 	}
@@ -234,51 +250,64 @@ export async function getUserTransactions(
 		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
 		.leftJoin(categories, eq(transactions.categoriesId, categories.id))
 		.where(whereClause)
-		.orderBy(orderField)
+		.orderBy(orderField, desc(transactions.id))
 		.limit(limit)
 		.offset(offset);
 
 	return userTransactions.length > 0
 		? userTransactions.map((transaction) => ({
-			id: transaction.id,
-			usersId: transaction.usersId,
-			accountsId: transaction.accountsId,
-			amount: transaction.amount,
-			description: transaction.description,
-			counterparty: transaction.counterparty,
-			currenciesId: transaction.currenciesId,
-			currency: {
-				isoCode: transaction.currencyIsoCode,
-				symbol: transaction.currencySymbol,
-				position: transaction.currencyPosition === "before" ? "before" : "after",
-			},
-			categoriesId: transaction.categoriesId,
-			category: transaction.categoryId
-				? {
-					id: transaction.categoryId,
-					name: transaction.categoryName ?? "Uncategorized",
-					type: transaction.categoryType ?? "system",
-				}
-				: null,
-			externalId: transaction.externalId,
-			bookedAt: transaction.bookedAt,
-			type: transaction.type,
-			createdAt: transaction.createdAt,
-			updatedAt: transaction.updatedAt,
-		}))
+				id: transaction.id,
+				usersId: transaction.usersId,
+				accountsId: transaction.accountsId,
+				amount: transaction.amount,
+				description: transaction.description,
+				counterparty: transaction.counterparty,
+				currenciesId: transaction.currenciesId,
+				currency: {
+					isoCode: transaction.currencyIsoCode,
+					symbol: transaction.currencySymbol,
+					position: transaction.currencyPosition === "before" ? "before" : "after",
+				},
+				categoriesId: transaction.categoriesId,
+				category: transaction.categoryId
+					? {
+							id: transaction.categoryId,
+							name: transaction.categoryName ?? "Uncategorized",
+							type: transaction.categoryType ?? "system",
+						}
+					: null,
+				externalId: transaction.externalId,
+				bookedAt: transaction.bookedAt,
+				type: transaction.type,
+				createdAt: transaction.createdAt,
+				updatedAt: transaction.updatedAt,
+			}))
 		: null;
 }
 
+function transactionFilters(args: CountTransactionsArgs) {
+	const filters = [eq(transactions.usersId, args.usersId)];
+	if (args.dateFrom) filters.push(gte(transactions.bookedAt, args.dateFrom));
+	if (args.dateTo) filters.push(lte(transactions.bookedAt, args.dateTo));
+	if (args.dateBefore) filters.push(lt(transactions.bookedAt, args.dateBefore));
+	if (args.accountId) filters.push(eq(transactions.accountsId, args.accountId));
+	if (args.categoryId) filters.push(eq(transactions.categoriesId, args.categoryId));
+	if (args.search) {
+		const pattern = `%${args.search.replace(/[\\%_]/g, "\\$&")}%`;
+		filters.push(
+			or(
+				ilike(transactions.counterparty, pattern),
+				ilike(transactions.description, pattern),
+				ilike(sql`${transactions.amount}::text`, pattern),
+				ilike(categories.name, pattern),
+			)!,
+		);
+	}
+	return filters;
+}
+
 export async function countUserTransactions(args: CountTransactionsArgs): Promise<number> {
-	// Matches getUserTransactions, which excludes soft-deleted rows by default — otherwise
-	// this total disagrees with the list it paginates.
-	const filters = [eq(transactions.usersId, args.usersId), isNull(transactions.deletedAt)];
-	if (args.dateFrom) {
-		filters.push(gte(transactions.bookedAt, args.dateFrom));
-	}
-	if (args.dateTo) {
-		filters.push(lte(transactions.bookedAt, args.dateTo));
-	}
+	const filters = [...transactionFilters(args), isNull(transactions.deletedAt)];
 
 	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 	const result = await db
@@ -286,6 +315,8 @@ export async function countUserTransactions(args: CountTransactionsArgs): Promis
 			total: count(),
 		})
 		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.leftJoin(categories, eq(transactions.categoriesId, categories.id))
 		.where(whereClause);
 
 	return Number(result[0]?.total ?? 0);
@@ -293,7 +324,11 @@ export async function countUserTransactions(args: CountTransactionsArgs): Promis
 
 export async function deleteUserTransaction(userId: string, transactionId: string) {
 	const timestamp = new Date();
-	const res = await db.update(transactions).set({ updatedAt: timestamp, deletedAt: timestamp }).where(and(eq(transactions.usersId, userId), (eq(transactions.id, transactionId)))).returning();
+	const res = await db
+		.update(transactions)
+		.set({ updatedAt: timestamp, deletedAt: timestamp })
+		.where(and(eq(transactions.usersId, userId), eq(transactions.id, transactionId)))
+		.returning();
 
 	return res[0] ?? null;
 }
@@ -317,8 +352,7 @@ export async function getTransactionCountsPerCategory(
 	args: GetTransactionCountsPerCategoryArgs,
 ): Promise<TransactionCountsPerCategory[]> {
 	const dateTo = args.dateTo ?? new Date();
-	const dateFrom =
-		args.dateFrom ?? new Date(dateTo.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const dateFrom = args.dateFrom ?? new Date(dateTo.getTime() - 7 * 24 * 60 * 60 * 1000);
 	const bookedDate = sql<string>`date(${transactions.bookedAt})`;
 
 	const filters = [

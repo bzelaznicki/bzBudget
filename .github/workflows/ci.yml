@@ -39,3 +39,4 @@ jobs:
       - run: node scripts/test-migrations.mjs
       - run: pnpm build
       - run: node scripts/test-goals-api.mjs
+      - run: node scripts/test-transactions-api.mjs

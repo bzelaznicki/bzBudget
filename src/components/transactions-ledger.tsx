@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
 	IconChevronLeft,
 	IconChevronRight,
@@ -27,10 +28,9 @@ import { Amount, CategoryChip, Monogram, Panel } from "@/components/warm-ledger/
 import { useTransactionEvents } from "@/contexts/transaction-events-context";
 import type { TransactionResponse } from "@/db/queries/transactions";
 import { formatDayHeading, formatMoney, monogram } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
-const ALL_CATEGORIES = "__all__";
+const ALL_CATEGORIES = "";
 
 type TransactionResponseLike = Omit<TransactionResponse, "bookedAt" | "createdAt" | "updatedAt"> & {
 	bookedAt: string | Date;
@@ -129,19 +129,44 @@ function groupByDay(entries: LedgerEntry[]): DayGroup[] {
 
 export function TransactionsLedger({
 	accountNames,
+	categories,
 }: {
 	/** Account id -> display name, so rows can name the account they belong to. */
 	accountNames: Record<string, string>;
+	categories: { id: string; name: string }[];
 }) {
 	const [entries, setEntries] = React.useState<LedgerEntry[]>([]);
 	const [total, setTotal] = React.useState(0);
 	const [pages, setPages] = React.useState(0);
-	const [pageIndex, setPageIndex] = React.useState(0);
+	const searchParams = useSearchParams();
+	const queryString = searchParams.toString();
+	const rawPage = Number(searchParams.get("page") ?? 1);
+	const pageIndex =
+		Number.isInteger(rawPage) && rawPage > 0 && rawPage <= 1000000 ? rawPage - 1 : 0;
+	function updateQuery(key: string, value: string) {
+		const params = new URLSearchParams(window.location.search);
+		if (value) params.set(key, value);
+		else params.delete(key);
+		if (key !== "page") params.delete("page");
+		window.history.replaceState(
+			null,
+			"",
+			`${window.location.pathname}${params.size ? `?${params}` : ""}`,
+		);
+	}
+	function setPageIndex(value: number | ((index: number) => number)) {
+		const index = typeof value === "function" ? value(pageIndex) : value;
+		updateQuery("page", index > 0 ? String(index + 1) : "");
+	}
+	const search = searchParams.get("search") ?? "";
+	const category = searchParams.get("categoryId") ?? "";
+	const account = searchParams.get("accountId") ?? "";
+	const dateFrom = searchParams.get("dateFrom") ?? "";
+	const dateTo = searchParams.get("dateTo") ?? "";
+	const hasFilters = Boolean(search || category || account || dateFrom || dateTo);
 	const [isLoading, setIsLoading] = React.useState(true);
 	const [error, setError] = React.useState<string | null>(null);
 	const [reloadKey, setReloadKey] = React.useState(0);
-	const [search, setSearch] = React.useState("");
-	const [category, setCategory] = React.useState(ALL_CATEGORIES);
 	const [pendingDelete, setPendingDelete] = React.useState<LedgerEntry | null>(null);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -155,10 +180,8 @@ export function TransactionsLedger({
 			setError(null);
 
 			try {
-				const params = new URLSearchParams({
-					page: String(pageIndex + 1),
-					perPage: String(PAGE_SIZE),
-				});
+				const params = new URLSearchParams(queryString);
+				params.set("perPage", String(PAGE_SIZE));
 				const response = await fetch(`/api/transactions?${params}`, {
 					signal: controller.signal,
 				});
@@ -170,6 +193,12 @@ export function TransactionsLedger({
 
 				if (controller.signal.aborted) return;
 
+				if (pageIndex > 0 && pageIndex >= payload.pages) {
+					const params = new URLSearchParams(queryString);
+					params.set("page", String(Math.max(payload.pages, 1)));
+					window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
+					return;
+				}
 				setEntries((payload.transactions ?? []).map(toEntry));
 				setTotal(payload.total ?? 0);
 				setPages(payload.pages ?? 0);
@@ -184,45 +213,23 @@ export function TransactionsLedger({
 			}
 		}
 
-		void load();
-		return () => controller.abort();
-	}, [pageIndex, reloadKey]);
+		setIsLoading(true);
+		const timer = setTimeout(() => void load(), 250);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	}, [pageIndex, queryString, reloadKey]);
 
 	React.useEffect(
 		() =>
 			subscribeTransactionCreated(() => {
-				setPageIndex(0);
 				setReloadKey((key) => key + 1);
 			}),
 		[subscribeTransactionCreated],
 	);
 
-	const categories = React.useMemo(() => {
-		const names = new Set<string>();
-		for (const entry of entries) {
-			if (entry.category?.name) names.add(entry.category.name);
-		}
-		return Array.from(names).sort();
-	}, [entries]);
-
-	// Search and category narrow the page already loaded; the server handles paging.
-	const visible = React.useMemo(() => {
-		const needle = search.trim().toLowerCase();
-
-		return entries.filter((entry) => {
-			if (category !== ALL_CATEGORIES && entry.category?.name !== category) return false;
-			if (!needle) return true;
-
-			return [
-				entry.counterparty,
-				entry.description ?? "",
-				entry.category?.name ?? "",
-				String(entry.amount),
-			].some((field) => field.toLowerCase().includes(needle));
-		});
-	}, [entries, search, category]);
-
-	const groups = React.useMemo(() => groupByDay(visible), [visible]);
+	const groups = React.useMemo(() => groupByDay(entries), [entries]);
 
 	async function confirmDelete() {
 		if (!pendingDelete) return;
@@ -256,28 +263,66 @@ export function TransactionsLedger({
 					<IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 					<Input
 						value={search}
-						onChange={(event) => setSearch(event.target.value)}
+						onChange={(event) => updateQuery("search", event.target.value)}
 						placeholder="Search merchants, notes, amounts…"
 						className="h-[34px] rounded-[10px] pl-9 text-[13px]"
 						aria-label="Search transactions"
+						maxLength={200}
 					/>
 				</div>
 
-				<FilterChip
-					active={category === ALL_CATEGORIES}
-					onClick={() => setCategory(ALL_CATEGORIES)}
+				<select
+					aria-label="Category"
+					value={category}
+					onChange={(event) => updateQuery("categoryId", event.target.value)}
+					className="border-input bg-background h-[34px] rounded-[10px] border px-2 text-sm"
 				>
-					All categories
-				</FilterChip>
-				{categories.map((name) => (
-					<FilterChip
-						key={name}
-						active={category === name}
-						onClick={() => setCategory(category === name ? ALL_CATEGORIES : name)}
+					<option value={ALL_CATEGORIES}>All categories</option>
+					{categories.map((item) => (
+						<option key={item.id} value={item.id}>
+							{item.name}
+						</option>
+					))}
+				</select>
+				<select
+					aria-label="Account"
+					value={account}
+					onChange={(event) => updateQuery("accountId", event.target.value)}
+					className="border-input bg-background h-[34px] rounded-[10px] border px-2 text-sm"
+				>
+					<option value="">All accounts</option>
+					{Object.entries(accountNames).map(([id, name]) => (
+						<option key={id} value={id}>
+							{name}
+						</option>
+					))}
+				</select>
+				<label className="flex items-center gap-2 text-sm">
+					From (UTC)
+					<Input
+						className="w-auto"
+						type="date"
+						value={dateFrom}
+						onChange={(event) => updateQuery("dateFrom", event.target.value)}
+					/>
+				</label>
+				<label className="flex items-center gap-2 text-sm">
+					To (UTC)
+					<Input
+						className="w-auto"
+						type="date"
+						value={dateTo}
+						onChange={(event) => updateQuery("dateTo", event.target.value)}
+					/>
+				</label>
+				{hasFilters && (
+					<Button
+						variant="ghost"
+						onClick={() => window.history.replaceState(null, "", window.location.pathname)}
 					>
-						{name}
-					</FilterChip>
-				))}
+						Clear filters
+					</Button>
+				)}
 
 				<span className="text-muted-foreground ml-auto text-[12.5px]">Sorted by newest</span>
 			</div>
@@ -294,9 +339,9 @@ export function TransactionsLedger({
 					</div>
 				) : groups.length === 0 ? (
 					<p className="text-muted-foreground py-14 text-center text-sm">
-						{total === 0
-							? "No transactions yet — add one to start your ledger."
-							: "Nothing on this page matches those filters."}
+						{hasFilters
+							? "No transactions match those filters."
+							: "No transactions yet. Add one to start your ledger."}
 					</p>
 				) : (
 					groups.map((group) => (
@@ -349,31 +394,37 @@ export function TransactionsLedger({
 
 				<div className="flex items-center justify-between px-5.5 py-3.5">
 					<span className="text-muted-foreground text-[12.5px]">
-						{total === 0 ? "No transactions" : `Showing ${rangeStart}–${rangeEnd} of ${total}`}
+						{isLoading
+							? "Loading transactions…"
+							: error
+								? "Results unavailable"
+								: total === 0
+									? "No transactions"
+									: `Showing ${rangeStart}–${rangeEnd} of ${total}`}
 					</span>
 					<div className="flex gap-1.5">
 						<PagerButton
 							label="First page"
 							icon={<IconChevronsLeft className="size-4" />}
-							disabled={pageIndex === 0}
+							disabled={isLoading || Boolean(error) || pageIndex === 0}
 							onClick={() => setPageIndex(0)}
 						/>
 						<PagerButton
 							label="Previous page"
 							icon={<IconChevronLeft className="size-4" />}
-							disabled={pageIndex === 0}
+							disabled={isLoading || Boolean(error) || pageIndex === 0}
 							onClick={() => setPageIndex((index) => Math.max(index - 1, 0))}
 						/>
 						<PagerButton
 							label="Next page"
 							icon={<IconChevronRight className="size-4" />}
-							disabled={pageIndex >= pages - 1}
+							disabled={isLoading || Boolean(error) || pageIndex >= pages - 1}
 							onClick={() => setPageIndex((index) => Math.min(index + 1, pages - 1))}
 						/>
 						<PagerButton
 							label="Last page"
 							icon={<IconChevronsRight className="size-4" />}
-							disabled={pageIndex >= pages - 1}
+							disabled={isLoading || Boolean(error) || pageIndex >= pages - 1}
 							onClick={() => setPageIndex(Math.max(pages - 1, 0))}
 						/>
 					</div>
@@ -410,32 +461,6 @@ export function TransactionsLedger({
 				</DialogContent>
 			</Dialog>
 		</div>
-	);
-}
-
-function FilterChip({
-	active,
-	onClick,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	children: React.ReactNode;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			aria-pressed={active}
-			className={cn(
-				"h-[34px] rounded-full border px-3.5 text-[12.5px] transition-colors",
-				active
-					? "bg-primary text-primary-foreground border-primary"
-					: "bg-card border-border text-secondary-foreground hover:bg-sunk",
-			)}
-		>
-			{children}
-		</button>
 	);
 }
 
