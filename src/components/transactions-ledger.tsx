@@ -181,6 +181,7 @@ export function TransactionsLedger({
 
 			try {
 				const params = new URLSearchParams(queryString);
+				params.set("page", String(pageIndex + 1));
 				params.set("perPage", String(PAGE_SIZE));
 				const response = await fetch(`/api/transactions?${params}`, {
 					signal: controller.signal,
@@ -213,7 +214,6 @@ export function TransactionsLedger({
 			}
 		}
 
-		setIsLoading(true);
 		const timer = setTimeout(() => void load(), 250);
 		return () => {
 			clearTimeout(timer);
