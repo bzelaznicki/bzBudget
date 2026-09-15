@@ -55,6 +55,8 @@ export function ArchiveAccountButton({
 			toast.success(`“${accountName}” archived.`);
 			router.push("/settings/accounts");
 			router.refresh();
+		} catch {
+			toast.error("We couldn't archive the account.");
 		} finally {
 			setPending(false);
 		}
@@ -118,6 +120,8 @@ export function RestoreAccountButton({
 			}
 			toast.success(`“${accountName}” is active again.`);
 			router.refresh();
+		} catch {
+			toast.error("We couldn't restore the account.");
 		} finally {
 			setPending(false);
 		}

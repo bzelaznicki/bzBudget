@@ -7,11 +7,15 @@ import {
 	createServerPosthog,
 	shutdownServerPosthog,
 } from "@/lib/posthog-server";
+import { accountIdSchema } from "@/lib/validation/accounts";
 import { respondWithError, respondWithJSON } from "@/util/json";
 
 /** Brings an archived account back into the account list and pickers. */
 export async function POST(_req: Request, context: { params: Promise<{ accountId: string }> }) {
 	const { accountId } = await context.params;
+	if (!accountIdSchema.safeParse(accountId).success) {
+		return respondWithError(400, "Invalid account id");
+	}
 
 	const session = await auth.api.getSession({ headers: await headers() });
 	if (!session) return respondWithError(401, "Unauthorized");

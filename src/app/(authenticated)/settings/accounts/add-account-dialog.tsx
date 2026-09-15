@@ -18,8 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CurrencyResponse } from "@/db/queries/currencies";
 import { ACCOUNT_NAME_MAX_LENGTH } from "@/lib/validation/accounts";
-import { createAccountAction, type CreateAccountState } from "./actions";
-import { CurrencyPicker } from "./currency-picker";
+import {
+	createAccountAction,
+	type CreateAccountState,
+} from "@/app/(authenticated)/settings/accounts/actions";
+import { CurrencyPicker } from "@/app/(authenticated)/settings/accounts/currency-picker";
 
 const INITIAL_STATE: CreateAccountState = { status: "idle" };
 

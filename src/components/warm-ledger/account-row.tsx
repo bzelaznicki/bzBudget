@@ -136,14 +136,23 @@ export function AddAccountRow({ children, ...props }: React.ComponentProps<"butt
 	);
 }
 
-export function AccountsEmptyState({ action }: { action: ReactNode }) {
+export function AccountsEmptyState({
+	action,
+	hasArchived = false,
+}: {
+	action: ReactNode;
+	/** Archived accounts still exist, so "yet" would be wrong. */
+	hasArchived?: boolean;
+}) {
 	return (
 		<div className="bg-sunk flex flex-col items-center gap-3 rounded-xl px-6 py-10 text-center">
 			<span className="bg-card text-secondary-foreground flex size-12 items-center justify-center rounded-[15px] shadow-[0_1px_2px_rgba(0,0,0,.06)]">
 				<IconBuildingBank className="size-5.5" />
 			</span>
 			<div>
-				<div className="text-[17px] font-semibold">No accounts yet</div>
+				<div className="text-[17px] font-semibold">
+					{hasArchived ? "No active accounts" : "No accounts yet"}
+				</div>
 				<p className="text-secondary-foreground mx-auto mt-1 max-w-[42ch] text-[13px] leading-relaxed">
 					Add one in about twenty seconds — give it a name and a currency, and every transaction you
 					log against it keeps the balance current.

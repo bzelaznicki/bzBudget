@@ -14,8 +14,11 @@ import { getArchivedBankAccounts } from "@/db/queries/accounts";
 import { listCurrencies } from "@/db/queries/currencies";
 import { getAccountBalances, getPrimaryCurrency } from "@/db/queries/overview";
 import { auth } from "@/lib/auth";
-import { RestoreAccountButton } from "./account-actions";
-import { AddAccountButton, AddAccountDialog } from "./add-account-dialog";
+import { RestoreAccountButton } from "@/app/(authenticated)/settings/accounts/account-actions";
+import {
+	AddAccountButton,
+	AddAccountDialog,
+} from "@/app/(authenticated)/settings/accounts/add-account-dialog";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
@@ -54,6 +57,7 @@ export default async function AccountsPage() {
 			<div className="flex flex-col gap-4.5 px-7 py-6">
 				{balances.length === 0 ? (
 					<AccountsEmptyState
+						hasArchived={archived.length > 0}
 						action={
 							<AddAccountDialog
 								currencies={currencies}

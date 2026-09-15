@@ -34,6 +34,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 	const [rememberMe, setRememberMe] = useState(false);
 	const [error, setError] = useState<SignInError | null>(null);
 	const [verificationSent, setVerificationSent] = useState(false);
+	const [resending, setResending] = useState(false);
 	const hasShownConfirmationToast = useRef(false);
 	const searchParams = useSearchParams();
 
@@ -111,15 +112,21 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 	};
 
 	const resendVerification = async () => {
-		const { error: resendError } = await authClient.sendVerificationEmail({
-			email,
-			callbackURL: "/login?emailConfirmed=1",
-		});
-		if (resendError) {
-			setError({ message: resendError.message ?? "That didn't send.", unverified: false });
-			return;
+		if (resending) return;
+		setResending(true);
+		try {
+			const { error: resendError } = await authClient.sendVerificationEmail({
+				email,
+				callbackURL: "/login?emailConfirmed=1",
+			});
+			if (resendError) {
+				setError({ message: resendError.message ?? "That didn't send.", unverified: false });
+				return;
+			}
+			setVerificationSent(true);
+		} finally {
+			setResending(false);
 		}
-		setVerificationSent(true);
 	};
 
 	return (
@@ -156,7 +163,9 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 								{verificationSent ? (
 									"A fresh link is on its way."
 								) : (
-									<InlineAction onClick={resendVerification}>Send a new link</InlineAction>
+									<InlineAction onClick={resendVerification} disabled={resending}>
+										{resending ? "Sending…" : "Send a new link"}
+									</InlineAction>
 								)}
 							</>
 						) : null}

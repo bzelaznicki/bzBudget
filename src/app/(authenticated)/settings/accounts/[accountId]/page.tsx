@@ -15,7 +15,10 @@ import { countUserTransactions, getUserTransactions } from "@/db/queries/transac
 import { auth } from "@/lib/auth";
 import { formatMoney, formatRowTimestamp, monogram } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { ArchiveAccountButton, RestoreAccountButton } from "../account-actions";
+import {
+	ArchiveAccountButton,
+	RestoreAccountButton,
+} from "@/app/(authenticated)/settings/accounts/account-actions";
 
 const RANGES = { "30d": 30, "90d": 90, "1y": 365 } as const;
 type RangeKey = keyof typeof RANGES;

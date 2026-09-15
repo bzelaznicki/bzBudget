@@ -276,7 +276,9 @@ export async function getAccountDetailFigures(
 		isNull(transactions.deletedAt),
 		eq(transactions.currenciesId, account.currenciesId),
 	);
-	const windowStart = sql`CURRENT_DATE - make_interval(days => ${days - 1})`;
+	// Day boundaries in UTC, matching the keys the JS loop below builds with Date.UTC.
+	const utcDay = sql`date_trunc('day', ${transactions.bookedAt} at time zone 'UTC')`;
+	const windowStart = sql`((now() at time zone 'UTC')::date - make_interval(days => ${days - 1}::int)) at time zone 'UTC'`;
 
 	const [totals] = await db
 		.select({
@@ -294,12 +296,12 @@ export async function getAccountDetailFigures(
 
 	const dailyRows = await db
 		.select({
-			day: sql<string>`to_char(date_trunc('day', ${transactions.bookedAt}), 'YYYY-MM-DD')`,
+			day: sql<string>`to_char(${utcDay}, 'YYYY-MM-DD')`,
 			total: SIGNED_AMOUNT,
 		})
 		.from(transactions)
 		.where(and(scope, gte(transactions.bookedAt, windowStart)))
-		.groupBy(sql`date_trunc('day', ${transactions.bookedAt})`);
+		.groupBy(utcDay);
 
 	const movementByDay = new Map(dailyRows.map((row) => [row.day, Number(row.total ?? 0)]));
 
