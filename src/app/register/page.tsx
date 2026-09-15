@@ -1,14 +1,22 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import { IconMail } from "@tabler/icons-react";
+
+import { AuthScaffold } from "@/components/auth/auth-scaffold";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+	AuthHeading,
+	AuthModeSwitch,
+	AuthNote,
+	AuthStatePanel,
+	FormAlert,
+	InlineAction,
+	PasswordField,
+} from "@/components/auth/auth-fields";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,44 +26,27 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { Loader2, X } from "lucide-react";
-import { signUp } from "@/lib/auth-client";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { AuthScaffold } from "@/components/auth/auth-scaffold";
 import type { CurrencyResponse } from "@/db/queries/currencies";
 import { captureClientEvent } from "@/instrumentation-client";
+import { authClient, signUp } from "@/lib/auth-client";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password-strength";
 
 type SignUpEmailPayload = Parameters<(typeof signUp)["email"]>[0];
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const VERIFY_CALLBACK_URL = "/login?emailConfirmed=1";
+
 export default function SignUp() {
-	const [firstName, setFirstName] = useState("");
-	const [lastName, setLastName] = useState("");
+	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [passwordConfirmation, setPasswordConfirmation] = useState("");
-	const [image, setImage] = useState<File | null>(null);
-	const [imagePreview, setImagePreview] = useState<string | null>(null);
-	const [currencies, setCurrencies] = useState<CurrencyResponse[]>([]);
 	const [defaultCurrencyId, setDefaultCurrencyId] = useState("");
+	const [acceptedTerms, setAcceptedTerms] = useState(false);
+	const [currencies, setCurrencies] = useState<CurrencyResponse[]>([]);
 	const [currenciesLoading, setCurrenciesLoading] = useState(true);
-	const router = useRouter();
 	const [loading, setLoading] = useState(false);
-
-	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) {
-			setImage(file);
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				setImagePreview(reader.result as string);
-			};
-			reader.readAsDataURL(file);
-		}
-	};
+	const [error, setError] = useState<string | null>(null);
+	const [sentTo, setSentTo] = useState<string | null>(null);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -76,7 +67,7 @@ export default function SignUp() {
 				}
 			} catch {
 				if (isMounted) {
-					toast.error("Failed to load currency options. Please try again.");
+					setError("Currency options didn't load. Refresh the page to try again.");
 				}
 			} finally {
 				if (isMounted) {
@@ -92,259 +83,240 @@ export default function SignUp() {
 		};
 	}, []);
 
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		setError(null);
+
+		if (!defaultCurrencyId) {
+			setError("Pick a default currency — it's how totals are shown across bzBudget.");
+			return;
+		}
+		if (password.length < MIN_PASSWORD_LENGTH) {
+			setError(`Your password needs at least ${MIN_PASSWORD_LENGTH} characters.`);
+			return;
+		}
+		if (!acceptedTerms) {
+			setError("Tick the box to accept the terms and privacy notice.");
+			return;
+		}
+
+		const payload = {
+			email,
+			password,
+			name: name.trim(),
+			defaultCurrenciesId: defaultCurrencyId,
+			callbackURL: VERIFY_CALLBACK_URL,
+		} as SignUpEmailPayload;
+
+		setLoading(true);
+		captureClientEvent("sign_up_submitted", { defaultCurrencyId });
+
+		try {
+			const { error: signUpError } = await signUp.email(payload);
+			if (signUpError) {
+				const message = signUpError.message ?? "We couldn't create your account. Please try again.";
+				setError(message);
+				captureClientEvent("sign_up_failed", { error: message });
+				return;
+			}
+			captureClientEvent("sign_up_succeeded");
+			setSentTo(email);
+		} catch (err) {
+			const message =
+				err instanceof Error && err.message
+					? err.message
+					: "We couldn't create your account. Please try again.";
+			setError(message);
+			captureClientEvent("sign_up_failed", { error: message });
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return (
 		<AuthScaffold
 			highlight="Create your account"
-			title="Launch smarter budgeting in minutes"
-			description="Connect financial accounts, set goals, and receive actionable insights tailored to your spending habits."
+			title="Set it up once. It keeps itself current."
+			description="Add your accounts, set a couple of budgets, and bzBudget does the arithmetic from then on."
 			benefits={[
+				{ title: "Create your account", description: "Your name, an email and a password." },
+				{ title: "Add your first account", description: "Name it and pick its currency." },
 				{
-					title: "Personalized budgets",
-					description: "Set flexible targets and track progress in real time.",
-				},
-				{
-					title: "Automated insights",
-					description: "See where you can save more with AI-assisted suggestions.",
-				},
-				{
-					title: "Team ready",
-					description: "Invite partners or advisors to collaborate securely.",
+					title: "Set a budget",
+					description: "Monthly limits with a warning before you hit them.",
 				},
 			]}
-			footer="By creating an account you agree to our Terms and Privacy Policy."
+			footer="We never sell transaction data."
 		>
-			<Card className="w-full border border-border shadow-xl shadow-black/5">
-				<CardHeader>
-					<CardTitle className="text-xl text-foreground">Create your account</CardTitle>
-					<CardDescription className="text-sm text-muted-foreground">
-						Tell us a little about yourself to personalise your dashboard.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="grid gap-4">
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<div className="grid gap-2">
-								<Label htmlFor="first-name">First name</Label>
-								<Input
-									id="first-name"
-									placeholder="Max"
-									required
-									onChange={(e) => {
-										setFirstName(e.target.value);
-									}}
-									value={firstName}
-								/>
-							</div>
-							<div className="grid gap-2">
-								<Label htmlFor="last-name">Last name</Label>
-								<Input
-									id="last-name"
-									placeholder="Robinson"
-									required
-									onChange={(e) => {
-										setLastName(e.target.value);
-									}}
-									value={lastName}
-								/>
-							</div>
+			{sentTo ? (
+				<VerifyEmailState email={sentTo} onChangeAddress={() => setSentTo(null)} />
+			) : (
+				<form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate={false}>
+					<AuthModeSwitch active="register" />
+					<AuthHeading title="Create your account" description="Free while it's just you." />
+
+					{error ? <FormAlert>{error}</FormAlert> : null}
+
+					<div className="grid gap-3.5">
+						<div className="grid gap-1.5">
+							<Label htmlFor="name" className="text-secondary-foreground text-[12.5px] font-normal">
+								Your name
+							</Label>
+							<Input
+								id="name"
+								autoComplete="name"
+								required
+								value={name}
+								onChange={(event) => setName(event.target.value)}
+								className="h-11"
+							/>
 						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="email">Email</Label>
+
+						<div className="grid gap-1.5">
+							<Label
+								htmlFor="email"
+								className="text-secondary-foreground text-[12.5px] font-normal"
+							>
+								Email
+							</Label>
 							<Input
 								id="email"
 								type="email"
-								placeholder="m@example.com"
+								autoComplete="email"
 								required
-								onChange={(e) => {
-									setEmail(e.target.value);
-								}}
 								value={email}
+								onChange={(event) => setEmail(event.target.value)}
+								className="h-11"
 							/>
 						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="default-currency">Default currency</Label>
+
+						<PasswordField
+							id="password"
+							label="Password"
+							value={password}
+							onChange={setPassword}
+							autoComplete="new-password"
+							showStrength
+						/>
+
+						<div className="grid gap-1.5">
+							<Label
+								htmlFor="default-currency"
+								className="text-secondary-foreground text-[12.5px] font-normal"
+							>
+								Default currency
+							</Label>
 							<Select
 								value={defaultCurrencyId}
 								onValueChange={setDefaultCurrencyId}
 								disabled={currenciesLoading || currencies.length === 0}
 							>
-								<SelectTrigger
-									id="default-currency"
-									className="w-full justify-between"
-									aria-label="Default currency"
-								>
+								<SelectTrigger id="default-currency" className="h-11! w-full justify-between">
 									<SelectValue
-										placeholder={
-											currenciesLoading ? "Loading currencies..." : "Select your default currency"
-										}
+										placeholder={currenciesLoading ? "Loading currencies…" : "Choose a currency"}
 									/>
 								</SelectTrigger>
 								{currencies.length > 0 ? (
 									<SelectContent>
 										{currencies.map((currency) => (
 											<SelectItem key={currency.id} value={currency.id}>
-												<span className="flex flex-col text-left">
-													<span className="font-medium text-foreground">{currency.name}</span>
-													<span className="text-xs text-muted-foreground">
-														{currency.symbol
-															? `${currency.symbol} · ${currency.isoCode}`
-															: currency.isoCode}
-													</span>
-												</span>
+												{currency.isoCode} — {currency.name}
 											</SelectItem>
 										))}
 									</SelectContent>
 								) : null}
 							</Select>
-							<p className="text-xs text-muted-foreground">
-								{!currenciesLoading && currencies.length === 0
-									? "Currencies are unavailable right now. Please refresh the page or try again later."
-									: "Used to format totals and insights across your dashboard."}
-							</p>
 						</div>
-						<div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
-							<div className="grid gap-2">
-								<Label htmlFor="password">Password</Label>
-								<Input
-									id="password"
-									type="password"
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									autoComplete="new-password"
-									placeholder="Create a strong password"
-								/>
-							</div>
-							<div className="grid gap-2">
-								<Label htmlFor="password_confirmation">Confirm password</Label>
-								<Input
-									id="password_confirmation"
-									type="password"
-									value={passwordConfirmation}
-									onChange={(e) => setPasswordConfirmation(e.target.value)}
-									autoComplete="new-password"
-									placeholder="Repeat password"
-								/>
-							</div>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="image">Profile image (optional)</Label>
-							<div className="flex items-center gap-4">
-								{imagePreview && (
-									<div className="relative h-16 w-16 overflow-hidden rounded-md border border-border">
-										<Image
-											src={imagePreview}
-											alt="Profile preview"
-											fill
-											className="object-cover"
-											sizes="64px"
-										/>
-									</div>
-								)}
-								<div className="flex w-full items-center gap-2">
-									<Input
-										id="image"
-										type="file"
-										accept="image/*"
-										onChange={handleImageChange}
-										className="w-full"
-									/>
-									{imagePreview && (
-										<button
-											type="button"
-											className="rounded-full border border-border p-2 text-muted-foreground transition hover:border-border hover:text-secondary-foreground"
-											onClick={() => {
-												setImage(null);
-												setImagePreview(null);
-											}}
-										>
-											<X className="h-4 w-4" />
-										</button>
-									)}
-								</div>
-							</div>
-						</div>
+
+						<label className="text-secondary-foreground flex items-start gap-2.5 text-[12.5px] leading-snug">
+							<Checkbox
+								checked={acceptedTerms}
+								onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+								className="mt-px"
+							/>
+							<span>
+								I agree to the terms and the privacy notice. We never sell transaction data.
+							</span>
+						</label>
+
 						<Button
-							type="button"
-							variant="default"
-							className="w-full"
+							type="submit"
+							className="h-11.5 w-full rounded-xl"
 							disabled={loading || currenciesLoading}
-							onClick={async () => {
-								if (!defaultCurrencyId) {
-									toast.error("Select a default currency before continuing.");
-									return;
-								}
-								const encodedImage = image ? await convertImageToBase64(image) : "";
-								const payload = {
-									email,
-									password,
-									name: `${firstName} ${lastName}`.trim(),
-									image: encodedImage,
-									defaultCurrenciesId: defaultCurrencyId,
-									callbackURL: "/login?emailConfirmed=1",
-									fetchOptions: {
-										onResponse: () => {
-											setLoading(false);
-										},
-										onRequest: () => {
-											setLoading(true);
-										},
-										onError: (ctx) => {
-											toast.error(ctx.error.message);
-											captureClientEvent("sign_up_failed", {
-												error: ctx.error.message,
-											});
-										},
-										onSuccess: async () => {
-											toast.success("Account created! Check your inbox to confirm your email.");
-											router.push("/dashboard");
-											captureClientEvent("sign_up_succeeded");
-										},
-									},
-								} as SignUpEmailPayload;
-								try {
-									captureClientEvent("sign_up_submitted", {
-										hasImage: Boolean(image),
-										defaultCurrencyId,
-									});
-									await signUp.email(payload);
-								} catch (error) {
-									const message =
-										error instanceof Error && error.message
-											? error.message
-											: "Unable to create your account. Please try again.";
-									toast.error(message);
-									setLoading(false);
-									captureClientEvent("sign_up_failed", {
-										error: message,
-									});
-								}
-							}}
 						>
-							{loading ? <Loader2 size={16} className="animate-spin" /> : "Create account"}
+							{loading ? <Loader2 className="size-4 animate-spin" /> : "Create account"}
 						</Button>
 					</div>
-				</CardContent>
-				<CardFooter className="flex flex-col items-center gap-3 border-t border-border bg-sunk/60 py-4">
-					<p className="text-sm text-muted-foreground">
-						Already registered?{" "}
-						<Link
-							href="/login"
-							className="font-medium text-income-foreground transition hover:text-income-foreground"
-						>
-							Sign in instead
-						</Link>
-					</p>
-				</CardFooter>
-			</Card>
+				</form>
+			)}
 		</AuthScaffold>
 	);
 }
 
-async function convertImageToBase64(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => resolve(reader.result as string);
-		reader.onerror = reject;
-		reader.readAsDataURL(file);
-	});
+function VerifyEmailState({
+	email,
+	onChangeAddress,
+}: {
+	email: string;
+	onChangeAddress: () => void;
+}) {
+	const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+	const [resending, setResending] = useState(false);
+	const [resendError, setResendError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (secondsLeft <= 0) return;
+		const timer = window.setTimeout(() => setSecondsLeft((current) => current - 1), 1000);
+		return () => window.clearTimeout(timer);
+	}, [secondsLeft]);
+
+	const resend = async () => {
+		setResending(true);
+		setResendError(null);
+		try {
+			const { error } = await authClient.sendVerificationEmail({
+				email,
+				callbackURL: VERIFY_CALLBACK_URL,
+			});
+			if (error) {
+				setResendError(error.message ?? "That didn't send. Try again in a moment.");
+				return;
+			}
+			captureClientEvent("verification_email_resent");
+			setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+		} finally {
+			setResending(false);
+		}
+	};
+
+	const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+	return (
+		<AuthStatePanel
+			icon={<IconMail />}
+			title="Check your inbox"
+			footer={
+				<>
+					{resendError ? <FormAlert>{resendError}</FormAlert> : null}
+					<AuthNote>
+						Nothing yet? Check spam, or{" "}
+						<InlineAction onClick={resend} disabled={secondsLeft > 0 || resending}>
+							send it again
+						</InlineAction>
+						{secondsLeft > 0 ? ` — available in ${countdown}.` : "."}
+					</AuthNote>
+					<p className="text-muted-foreground text-[12.5px]">
+						Wrong address? <InlineAction onClick={onChangeAddress}>Change it</InlineAction>
+						{" · "}
+						<Link href="/login" className="text-income-foreground font-medium hover:underline">
+							Go to sign in
+						</Link>
+					</p>
+				</>
+			}
+		>
+			We sent a link to <span className="text-foreground font-medium">{email}</span>. Open it to
+			confirm your address, then sign in. It expires in 30 minutes.
+		</AuthStatePanel>
+	);
 }

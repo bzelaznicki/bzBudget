@@ -232,6 +232,100 @@ export async function getCategorySpendBreakdown(
 	};
 }
 
+export type AccountDailyBalance = {
+	/** ISO `YYYY-MM-DD`. */
+	day: string;
+	balance: number;
+};
+
+export type AccountDetailFigures = {
+	balance: number;
+	monthIn: number;
+	monthOut: number;
+	series: AccountDailyBalance[];
+	currency: CurrencyDisplay;
+};
+
+/**
+ * Current balance, this month's in/out, and the end-of-day balance for each of the last
+ * `days` days. Like `getAccountBalances`, only transactions in the account's own currency
+ * count, so every figure here is expressed in that one currency.
+ */
+export async function getAccountDetailFigures(
+	userId: string,
+	accountId: string,
+	days: number,
+): Promise<AccountDetailFigures | null> {
+	const [account] = await db
+		.select({
+			currenciesId: bankAccounts.currenciesId,
+			isoCode: currencies.isoCode,
+			symbol: currencies.symbol,
+			position: currencies.position,
+		})
+		.from(bankAccounts)
+		.innerJoin(currencies, eq(bankAccounts.currenciesId, currencies.id))
+		.where(and(eq(bankAccounts.id, accountId), eq(bankAccounts.usersId, userId)))
+		.limit(1);
+
+	if (!account) return null;
+
+	const scope = and(
+		eq(transactions.usersId, userId),
+		eq(transactions.accountsId, accountId),
+		isNull(transactions.deletedAt),
+		eq(transactions.currenciesId, account.currenciesId),
+	);
+	const windowStart = sql`CURRENT_DATE - make_interval(days => ${days - 1})`;
+
+	const [totals] = await db
+		.select({
+			balance: SIGNED_AMOUNT,
+			opening: sql<string>`sum(case when ${transactions.bookedAt} < ${windowStart} then
+				case when ${transactions.type} = 'incoming' then ${transactions.amount} else -${transactions.amount} end
+			else 0 end)`,
+			monthIn: sql<string>`sum(case when ${transactions.type} = 'incoming'
+				and ${transactions.bookedAt} >= date_trunc('month', CURRENT_DATE) then ${transactions.amount} else 0 end)`,
+			monthOut: sql<string>`sum(case when ${transactions.type} = 'outgoing'
+				and ${transactions.bookedAt} >= date_trunc('month', CURRENT_DATE) then ${transactions.amount} else 0 end)`,
+		})
+		.from(transactions)
+		.where(scope);
+
+	const dailyRows = await db
+		.select({
+			day: sql<string>`to_char(date_trunc('day', ${transactions.bookedAt}), 'YYYY-MM-DD')`,
+			total: SIGNED_AMOUNT,
+		})
+		.from(transactions)
+		.where(and(scope, gte(transactions.bookedAt, windowStart)))
+		.groupBy(sql`date_trunc('day', ${transactions.bookedAt})`);
+
+	const movementByDay = new Map(dailyRows.map((row) => [row.day, Number(row.total ?? 0)]));
+
+	// Walk every day so quiet days hold the previous balance instead of vanishing.
+	const now = new Date();
+	const series: AccountDailyBalance[] = [];
+	let running = Number(totals?.opening ?? 0);
+
+	for (let offset = days - 1; offset >= 0; offset -= 1) {
+		const cursor = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - offset),
+		);
+		const key = cursor.toISOString().slice(0, 10);
+		running += movementByDay.get(key) ?? 0;
+		series.push({ day: key, balance: running });
+	}
+
+	return {
+		balance: Number(totals?.balance ?? 0),
+		monthIn: Number(totals?.monthIn ?? 0),
+		monthOut: Number(totals?.monthOut ?? 0),
+		series,
+		currency: toCurrencyDisplay(account),
+	};
+}
+
 /** Every active account with its running balance and net movement this month. */
 export async function getAccountBalances(userId: string): Promise<AccountBalance[]> {
 	const monthStart = sql`date_trunc('month', CURRENT_DATE)`;
