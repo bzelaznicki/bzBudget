@@ -252,6 +252,25 @@ export function TransactionsLedger({
 		}
 	}
 
+	const deleteDescription = (() => {
+		if (!pendingDelete) return null;
+		const when = formatDayHeading(pendingDelete.bookedAtDate);
+		if (pendingDelete.transferId) {
+			const amount = formatMoney(Math.abs(pendingDelete.signedAmount), pendingDelete.currency);
+			return (
+				`${amount} on ${when}. Both sides go — money leaves the one account and arrives in ` +
+				"the other — so both balances change back. This can't be undone."
+			);
+		}
+		const amount = formatMoney(pendingDelete.signedAmount, pendingDelete.currency, {
+			signed: true,
+		});
+		return (
+			`${amount} on ${when}. The account balance and any budget it counted towards update ` +
+			"straight away. This can't be undone."
+		);
+	})();
+
 	const rangeStart = total === 0 ? 0 : pageIndex * PAGE_SIZE + 1;
 	const rangeEnd = Math.min((pageIndex + 1) * PAGE_SIZE, total);
 
@@ -483,15 +502,7 @@ export function TransactionsLedger({
 							? `Delete “${pendingDelete.counterparty}”?`
 							: "Delete transaction?"
 				}
-				description={
-					pendingDelete
-						? pendingDelete.transferId
-							? `${formatMoney(Math.abs(pendingDelete.signedAmount), pendingDelete.currency)} on ${formatDayHeading(pendingDelete.bookedAtDate)}. Both sides go — money leaves the one account and arrives in the other — so both balances change back. This can't be undone.`
-							: `${formatMoney(pendingDelete.signedAmount, pendingDelete.currency, {
-									signed: true,
-								})} on ${formatDayHeading(pendingDelete.bookedAtDate)}. The account balance and any budget it counted towards update straight away. This can't be undone.`
-						: null
-				}
+				description={deleteDescription}
 				cancelLabel="Keep it"
 				confirmLabel={pendingDelete?.transferId ? "Delete transfer" : "Delete transaction"}
 				pendingLabel="Deleting…"
