@@ -359,63 +359,56 @@ export function TransactionsLedger({
 							{group.entries.map((entry) => (
 								<div
 									key={entry.id}
-									role="button"
-									tabIndex={0}
-									aria-label={`Open ${entry.counterparty}`}
-									onClick={() => setSelected(entry)}
-									onKeyDown={(event) => {
-										if (event.target !== event.currentTarget) return;
-										if (event.key === "Enter" || event.key === " ") {
-											event.preventDefault();
-											setSelected(entry);
-										}
-									}}
-									className="border-border hover:bg-sunk/30 focus-visible:bg-sunk/40 flex cursor-pointer items-center gap-3.5 border-b px-5.5 py-3 outline-none"
+									className="border-border hover:bg-sunk/30 flex items-center gap-2 border-b pr-5.5"
 								>
-									{entry.transferId ? (
-										<span className="bg-sunk text-muted-foreground flex size-9.5 flex-none items-center justify-center rounded-xl">
-											<IconArrowsLeftRight className="size-4" />
-										</span>
-									) : (
-										<Monogram
-											label={monogram(entry.counterparty)}
-											className="size-9.5 rounded-xl"
+									<button
+										type="button"
+										aria-label={`Open ${entry.counterparty}`}
+										onClick={() => setSelected(entry)}
+										className="focus-visible:bg-sunk/40 flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 py-3 pl-5.5 text-left outline-none"
+									>
+										{entry.transferId ? (
+											<span className="bg-sunk text-muted-foreground flex size-9.5 flex-none items-center justify-center rounded-xl">
+												<IconArrowsLeftRight className="size-4" />
+											</span>
+										) : (
+											<Monogram
+												label={monogram(entry.counterparty)}
+												className="size-9.5 rounded-xl"
+											/>
+										)}
+										<div className="min-w-0 flex-1 leading-tight">
+											<div className="flex items-center gap-1.5 text-sm font-medium">
+												<span className="truncate">{entry.counterparty}</span>
+												{entry.recurring ? (
+													<IconRepeat
+														className="text-muted-foreground size-3.5 flex-none"
+														aria-label="Recurring"
+													/>
+												) : null}
+											</div>
+											<div className="text-muted-foreground truncate text-[11.5px]">
+												{[entry.description || "—", accountNames[entry.accountsId]]
+													.filter(Boolean)
+													.join(" · ")}
+											</div>
+										</div>
+										{entry.transferId ? (
+											<CategoryChip>Transfer</CategoryChip>
+										) : entry.category?.name ? (
+											<CategoryChip>{entry.category.name}</CategoryChip>
+										) : null}
+										<Amount
+											amount={entry.signedAmount}
+											currency={entry.currency}
+											className="w-[120px] flex-none text-right text-[14.5px]"
 										/>
-									)}
-									<div className="min-w-0 flex-1 leading-tight">
-										<div className="flex items-center gap-1.5 text-sm font-medium">
-											<span className="truncate">{entry.counterparty}</span>
-											{entry.recurring ? (
-												<IconRepeat
-													className="text-muted-foreground size-3.5 flex-none"
-													aria-label="Recurring"
-												/>
-											) : null}
-										</div>
-										<div className="text-muted-foreground truncate text-[11.5px]">
-											{[entry.description || "—", accountNames[entry.accountsId]]
-												.filter(Boolean)
-												.join(" · ")}
-										</div>
-									</div>
-									{entry.transferId ? (
-										<CategoryChip>Transfer</CategoryChip>
-									) : entry.category?.name ? (
-										<CategoryChip>{entry.category.name}</CategoryChip>
-									) : null}
-									<Amount
-										amount={entry.signedAmount}
-										currency={entry.currency}
-										className="w-[120px] flex-none text-right text-[14.5px]"
-									/>
+									</button>
 									<Button
 										variant="ghost"
 										size="icon"
 										className="text-muted-foreground hover:text-destructive size-8"
-										onClick={(event) => {
-											event.stopPropagation();
-											setPendingDelete(entry);
-										}}
+										onClick={() => setPendingDelete(entry)}
 									>
 										<IconTrash className="size-4" />
 										<span className="sr-only">Delete {entry.counterparty}</span>
