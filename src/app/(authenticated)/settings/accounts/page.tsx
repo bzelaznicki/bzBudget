@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { IconPlus } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconPlus } from "@tabler/icons-react";
 
 import { SiteHeader } from "@/components/site-header";
+import { TransferDialog } from "@/components/transfer-dialog";
+import { Button } from "@/components/ui/button";
 import {
 	AccountRow,
 	AccountsEmptyState,
@@ -50,7 +52,20 @@ export default async function AccountsPage() {
 				showAddTransaction={false}
 				actions={
 					balances.length > 0 ? (
-						<AddAccountDialog currencies={currencies} trigger={<AddAccountButton />} />
+						<div className="flex gap-2">
+							{balances.length > 1 ? (
+								<TransferDialog
+									accounts={balances}
+									trigger={
+										<Button variant="outline" size="sm">
+											<IconArrowsLeftRight />
+											Move money
+										</Button>
+									}
+								/>
+							) : null}
+							<AddAccountDialog currencies={currencies} trigger={<AddAccountButton />} />
+						</div>
 					) : null
 				}
 			/>

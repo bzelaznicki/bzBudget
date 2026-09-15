@@ -143,6 +143,11 @@ export const transactions = pgTable(
 		externalId: text("external_id"),
 		bookedAt: timestamp("booked_at", { withTimezone: true }).notNull(),
 		type: transactionsTypeEnum("type").notNull(),
+		// Marked by the user as something that comes back every month.
+		recurring: boolean("recurring").notNull().default(false),
+		// Shared by the two legs of a move between the user's own accounts. Transfer legs change
+		// balances but are not spending or income, so budgets and in/out totals skip them.
+		transferId: uuid("transfer_id"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 		deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -153,6 +158,7 @@ export const transactions = pgTable(
 			table.externalId,
 		),
 		bookedAtIdx: index("transactions_booked_at_idx").on(table.bookedAt),
+		transferIdIdx: index("transactions_transfer_id_idx").on(table.transferId),
 	}),
 );
 

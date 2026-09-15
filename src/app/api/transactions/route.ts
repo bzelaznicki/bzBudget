@@ -75,6 +75,8 @@ export async function POST(req: Request) {
 			payload.type,
 			normalizedDescription,
 			payload.categoriesId,
+			undefined,
+			payload.recurring ?? false,
 		);
 
 		if (!transaction) {

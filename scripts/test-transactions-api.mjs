@@ -162,8 +162,123 @@ try {
 	const page = await request(`/transactions?search=old&categoryId=${category.id}`);
 	assert.equal(page.status, 200);
 	assert.ok((await page.text()).includes("Groceries"));
+
+	// Detail sheet edits.
+	const patchPath = `/api/transactions/${match.id}`;
+	const patched = await request(patchPath, {
+		method: "PATCH",
+		body: { counterparty: "Renamed", description: null, categoriesId: null, recurring: true },
+	});
+	assert.equal(patched.status, 200);
+	const patchedBody = await patched.json();
+	assert.equal(patchedBody.counterparty, "Renamed");
+	assert.equal(patchedBody.description, null);
+	assert.equal(patchedBody.categoriesId, null);
+	assert.equal(patchedBody.recurring, true);
+	const [foreignCategory] =
+		await client`INSERT INTO categories (name, users_id, type) VALUES ('Private', ${other.id}, 'user') RETURNING id`;
+	for (const [body, status, cookie] of [
+		[{ counterparty: "Stolen" }, 404, otherCookie],
+		[{}, 400],
+		[{ amount: 1 }, 400],
+		[{ counterparty: "   " }, 400],
+		[{ categoriesId: foreignCategory.id }, 400],
+	]) {
+		assert.equal(
+			(await request(patchPath, { method: "PATCH", body, cookie })).status,
+			status,
+			JSON.stringify(body),
+		);
+	}
+	assert.equal(
+		(await request("/api/transactions/bad", { method: "PATCH", body: { recurring: true } })).status,
+		404,
+	);
+	assert.equal(
+		(await client`SELECT counterparty FROM transactions WHERE id = ${match.id}`)[0].counterparty,
+		"Renamed",
+	);
+	const created = await request("/api/transactions", {
+		method: "POST",
+		body: {
+			accountsId: account.id,
+			amount: 5,
+			counterparty: "Gym",
+			currenciesId: currency.id,
+			type: "outgoing",
+			bookedAt: new Date().toISOString(),
+			recurring: true,
+		},
+	});
+	assert.equal(created.status, 201);
+	assert.equal((await created.json()).recurring, true);
+
+	// Transfers move balances without counting as spending.
+	const [euro] =
+		await client`INSERT INTO currencies (name, iso_code, symbol) VALUES ('Euro', 'EUR', '€') RETURNING id`;
+	const [savings, euroAccount] =
+		await client`INSERT INTO bank_accounts (users_id, name, currencies_id)
+		VALUES (${owner.id}, 'Savings', ${currency.id}), (${owner.id}, 'Euro wallet', ${euro.id}) RETURNING id`;
+	await client`INSERT INTO budgets (users_id, amount, period) VALUES (${owner.id}, 100000, 'monthly')`;
+	const spending = async () => (await (await request("/api/budgets")).json())[0].currentSpending;
+	const spentBefore = await spending();
+	const transferPayload = { fromAccountId: account.id, toAccountId: savings.id, amount: 400 };
+	assert.equal(
+		(await request("/api/transfers", { method: "POST", body: transferPayload, cookie: null }))
+			.status,
+		401,
+	);
+	for (const body of [
+		{ ...transferPayload, toAccountId: account.id },
+		{ ...transferPayload, toAccountId: euroAccount.id },
+		{ ...transferPayload, toAccountId: otherAccount.id },
+		{ ...transferPayload, amount: -1 },
+		{ ...transferPayload, fromAccountId: "bad" },
+	]) {
+		assert.equal(
+			(await request("/api/transfers", { method: "POST", body })).status,
+			400,
+			JSON.stringify(body),
+		);
+	}
+	const transferResponse = await request("/api/transfers", {
+		method: "POST",
+		body: transferPayload,
+	});
+	assert.equal(transferResponse.status, 201);
+	const transfer = await transferResponse.json();
+	assert.equal(transfer.from.transferId, transfer.to.transferId);
+	assert.equal(transfer.from.type, "outgoing");
+	assert.equal(transfer.to.type, "incoming");
+	assert.equal(transfer.from.accountsId, account.id);
+	assert.equal(transfer.to.accountsId, savings.id);
+	assert.equal(await spending(), spentBefore, "Transfers stay out of budgets");
+	const legPath = `/api/transactions/${transfer.from.id}`;
+	assert.equal(
+		(await request(legPath, { method: "PATCH", body: { categoriesId: category.id } })).status,
+		400,
+	);
+	assert.equal(
+		(await request(legPath, { method: "PATCH", body: { description: "Rainy day" } })).status,
+		200,
+	);
+	const legs =
+		await client`SELECT description, deleted_at FROM transactions WHERE transfer_id = ${transfer.transferId}`;
+	assert.deepEqual(
+		legs.map((leg) => leg.description),
+		["Rainy day", "Rainy day"],
+	);
+	assert.equal((await request(legPath, { method: "DELETE", cookie: otherCookie })).status, 404);
+	assert.equal((await request(legPath, { method: "DELETE" })).status, 204);
+	const deletedLegs =
+		await client`SELECT deleted_at FROM transactions WHERE transfer_id = ${transfer.transferId}`;
+	assert.ok(
+		deletedLegs.every((leg) => leg.deleted_at !== null),
+		"Deleting one leg removes both",
+	);
+
 	console.log(
-		"Transaction HTTP search, combined filters, date boundaries, pagination, validation, and user isolation pass.",
+		"Transaction HTTP search, combined filters, date boundaries, pagination, validation, user isolation, edits, and transfers pass.",
 	);
 } catch (error) {
 	console.error(output);

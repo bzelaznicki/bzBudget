@@ -15,6 +15,13 @@
       "when": 1788875520063,
       "tag": "0001_savings_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789476897002,
+      "tag": "0002_transactions_recurring_transfers",
+      "breakpoints": true
     }
   ]
 }
