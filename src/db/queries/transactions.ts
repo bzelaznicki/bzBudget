@@ -93,8 +93,8 @@ const TRANSACTION_COLUMNS = {
 	categoryType: categories.type,
 };
 
-function selectTransactions() {
-	return db
+function selectTransactions(executor: Pick<typeof db, "select"> = db) {
+	return executor
 		.select(TRANSACTION_COLUMNS)
 		.from(transactions)
 		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
@@ -139,8 +139,9 @@ function toTransactionResponse(row: TransactionRow): TransactionResponse {
 export async function getUserTransaction(
 	usersId: string,
 	transactionId: string,
+	executor: Pick<typeof db, "select"> = db,
 ): Promise<TransactionResponse | null> {
-	const [row] = await selectTransactions()
+	const [row] = await selectTransactions(executor)
 		.where(
 			and(
 				eq(transactions.usersId, usersId),
@@ -327,13 +328,17 @@ export async function updateUserTransaction(
 				updatedAt: timestamp,
 				...(update.counterparty !== undefined ? { counterparty: update.counterparty } : {}),
 				...(update.categoriesId !== undefined ? { categoriesId: update.categoriesId } : {}),
-				...(update.recurring !== undefined ? { recurring: update.recurring } : {}),
 			})
 			.where(and(eq(transactions.usersId, usersId), eq(transactions.id, transactionId)));
 
-		if (description !== undefined || update.bookedAt !== undefined) {
+		if (
+			description !== undefined ||
+			update.bookedAt !== undefined ||
+			update.recurring !== undefined
+		) {
 			const shared = {
 				updatedAt: timestamp,
+				...(update.recurring !== undefined ? { recurring: update.recurring } : {}),
 				...(description !== undefined ? { description } : {}),
 				...(update.bookedAt !== undefined ? { bookedAt: update.bookedAt } : {}),
 			};
@@ -433,7 +438,7 @@ export async function createTransfer(
 		transferId,
 	};
 
-	const [outgoing, incoming] = await db.transaction(async (tx) => {
+	const [fromLeg, toLeg] = await db.transaction(async (tx) => {
 		const [outLeg] = await tx
 			.insert(transactions)
 			.values({ ...leg, accountsId: from.id, counterparty: to.name, type: "outgoing" })
@@ -442,14 +447,14 @@ export async function createTransfer(
 			.insert(transactions)
 			.values({ ...leg, accountsId: to.id, counterparty: from.name, type: "incoming" })
 			.returning({ id: transactions.id });
-		return [outLeg, inLeg];
+		// Read back inside the transaction so a failure here rolls the legs back.
+		const [fromRow, toRow] = await Promise.all([
+			getUserTransaction(usersId, outLeg.id, tx),
+			getUserTransaction(usersId, inLeg.id, tx),
+		]);
+		if (!fromRow || !toRow) throw new Error("Transfer could not be read back");
+		return [fromRow, toRow];
 	});
-
-	const [fromLeg, toLeg] = await Promise.all([
-		getUserTransaction(usersId, outgoing.id),
-		getUserTransaction(usersId, incoming.id),
-	]);
-	if (!fromLeg || !toLeg) throw new Error("Transfer could not be read back");
 
 	return { transferId, from: fromLeg, to: toLeg };
 }

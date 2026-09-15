@@ -44,6 +44,13 @@ export default async function AccountsPage() {
 		.filter((entry) => entry.currency.isoCode === primaryCurrency.isoCode)
 		.reduce((sum, entry) => sum + entry.balance, 0);
 	const currencyCount = new Set(balances.map((entry) => entry.currency.isoCode)).size;
+	// Transfers need two accounts in one currency; there are no FX rates to convert with.
+	const canTransfer = balances.some((entry, index) =>
+		balances.some(
+			(other, otherIndex) =>
+				otherIndex !== index && other.currency.isoCode === entry.currency.isoCode,
+		),
+	);
 
 	return (
 		<>
@@ -53,7 +60,7 @@ export default async function AccountsPage() {
 				actions={
 					balances.length > 0 ? (
 						<div className="flex gap-2">
-							{balances.length > 1 ? (
+							{canTransfer ? (
 								<TransferDialog
 									accounts={balances}
 									trigger={

@@ -230,7 +230,7 @@ export function SegmentedControl<T extends string>({
 			aria-label={label}
 			className={cn("bg-sunk flex w-fit gap-1 rounded-[10px] p-[3px]", className)}
 		>
-			{options.map((option) => {
+			{options.map((option, index) => {
 				const selected = option.value === value;
 				return (
 					<button
@@ -238,8 +238,28 @@ export function SegmentedControl<T extends string>({
 						type="button"
 						role="radio"
 						aria-checked={selected}
+						tabIndex={selected ? 0 : -1}
 						disabled={disabled}
 						onClick={() => onChange(option.value)}
+						onKeyDown={(event) => {
+							const last = options.length - 1;
+							const target =
+								event.key === "ArrowRight" || event.key === "ArrowDown"
+									? (index + 1) % options.length
+									: event.key === "ArrowLeft" || event.key === "ArrowUp"
+										? (index - 1 + options.length) % options.length
+										: event.key === "Home"
+											? 0
+											: event.key === "End"
+												? last
+												: -1;
+							if (target === -1) return;
+							event.preventDefault();
+							onChange(options[target].value);
+							(
+								event.currentTarget.parentElement?.children[target] as HTMLElement | undefined
+							)?.focus();
+						}}
 						className={cn(
 							"focus-visible:ring-ring/50 rounded-lg px-4.5 py-1.5 text-[13px] outline-none transition-colors focus-visible:ring-[3px] disabled:opacity-50",
 							selected

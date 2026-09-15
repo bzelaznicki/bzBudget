@@ -81,7 +81,14 @@ export const transferPayloadSchema = z
 	.object({
 		fromAccountId: z.string().uuid({ message: "Choose the account to move from" }),
 		toAccountId: z.string().uuid({ message: "Choose the account to move to" }),
-		amount: z.number().finite().positive("Amount must be more than 0").max(9999999999.99),
+		amount: z
+			.number()
+			.finite()
+			.positive("Amount must be more than 0")
+			.max(9999999999.99)
+			.refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+				message: "Amount can have at most two decimal places",
+			}),
 		bookedAt: z
 			.string()
 			.refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date")

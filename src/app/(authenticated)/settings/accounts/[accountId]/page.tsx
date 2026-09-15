@@ -133,7 +133,9 @@ export default async function AccountDetailPage({ params, searchParams }: Accoun
 								accountName={account.name}
 								variant="default"
 							/>
-						) : balances.length > 1 ? (
+						) : balances.some(
+								(entry) => entry.id !== account.id && entry.currency.isoCode === currency.isoCode,
+						  ) ? (
 							<TransferDialog
 								accounts={balances}
 								defaultFromId={account.id}

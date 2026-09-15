@@ -125,10 +125,12 @@ function groupByDay(entries: LedgerEntry[]): DayGroup[] {
 export function TransactionsLedger({
 	accountNames,
 	categories,
+	primaryCurrency,
 }: {
 	/** Account id -> display name, so rows can name the account they belong to. */
 	accountNames: Record<string, string>;
 	categories: { id: string; name: string }[];
+	primaryCurrency: TransactionResponse["currency"];
 }) {
 	const [entries, setEntries] = React.useState<LedgerEntry[]>([]);
 	const [total, setTotal] = React.useState(0);
@@ -467,6 +469,7 @@ export function TransactionsLedger({
 				transaction={selected}
 				accountName={selected ? accountNames[selected.accountsId] : undefined}
 				categories={categories}
+				primaryCurrency={primaryCurrency}
 				open={selected !== null}
 				onOpenChange={(open) => !open && setSelected(null)}
 				onSaved={(transaction) => {

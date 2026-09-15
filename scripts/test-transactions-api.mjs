@@ -233,6 +233,8 @@ try {
 		{ ...transferPayload, toAccountId: euroAccount.id },
 		{ ...transferPayload, toAccountId: otherAccount.id },
 		{ ...transferPayload, amount: -1 },
+		{ ...transferPayload, amount: 0.001 },
+		{ ...transferPayload, amount: 1.005 },
 		{ ...transferPayload, fromAccountId: "bad" },
 	]) {
 		assert.equal(
@@ -261,6 +263,16 @@ try {
 	assert.equal(
 		(await request(legPath, { method: "PATCH", body: { description: "Rainy day" } })).status,
 		200,
+	);
+	assert.equal(
+		(await request(legPath, { method: "PATCH", body: { recurring: true } })).status,
+		200,
+	);
+	const recurringLegs =
+		await client`SELECT recurring FROM transactions WHERE transfer_id = ${transfer.transferId}`;
+	assert.ok(
+		recurringLegs.every((leg) => leg.recurring),
+		"Recurring applies to both legs",
 	);
 	const legs =
 		await client`SELECT description, deleted_at FROM transactions WHERE transfer_id = ${transfer.transferId}`;

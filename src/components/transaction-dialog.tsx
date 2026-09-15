@@ -265,7 +265,12 @@ export function TransactionDialog({
 					</div>
 				) : (
 					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4.5">
+						<form
+							onSubmit={form.handleSubmit(onSubmit, () => {
+								addAnother.current = false;
+							})}
+							className="grid gap-4.5"
+						>
 							{showAccountHint ? (
 								<div className="bg-sunk/60 border-border text-secondary-foreground rounded-xl border px-3.5 py-3 text-[12.5px]">
 									Add an account in settings before recording transactions.

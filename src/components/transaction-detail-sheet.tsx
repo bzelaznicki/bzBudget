@@ -25,7 +25,7 @@ import { FormAlert } from "@/components/auth/auth-fields";
 import { Monogram, budgetState, budgetStateColor } from "@/components/warm-ledger/primitives";
 import type { BudgetWithSpending } from "@/db/queries/budgets";
 import type { TransactionResponse } from "@/db/queries/transactions";
-import { formatMoney, monogram } from "@/lib/format";
+import { type CurrencyFormat, formatMoney, monogram } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const HEADING_FORMATTER = new Intl.DateTimeFormat("en-GB", {
@@ -46,6 +46,7 @@ export function TransactionDetailSheet({
 	transaction,
 	accountName,
 	categories,
+	primaryCurrency,
 	open,
 	onOpenChange,
 	onSaved,
@@ -54,6 +55,8 @@ export function TransactionDetailSheet({
 	transaction: DetailTransaction | null;
 	accountName?: string;
 	categories: { id: string; name: string }[];
+	/** Currency budgets are tracked in; the budget card only shows for matching transactions. */
+	primaryCurrency: CurrencyFormat;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSaved: (transaction: TransactionResponse) => void;
@@ -68,6 +71,7 @@ export function TransactionDetailSheet({
 						transaction={transaction}
 						accountName={accountName}
 						categories={categories}
+						primaryCurrency={primaryCurrency}
 						onSaved={onSaved}
 						onDelete={onDelete}
 					/>
@@ -81,12 +85,14 @@ function DetailForm({
 	transaction,
 	accountName,
 	categories,
+	primaryCurrency,
 	onSaved,
 	onDelete,
 }: {
 	transaction: DetailTransaction;
 	accountName?: string;
 	categories: { id: string; name: string }[];
+	primaryCurrency: CurrencyFormat;
 	onSaved: (transaction: TransactionResponse) => void;
 	onDelete: (transaction: DetailTransaction) => void;
 }) {
@@ -107,7 +113,10 @@ function DetailForm({
 	const [values, setValues] = React.useState(initial);
 	const [saving, setSaving] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
-	const budget = useCategoryBudget(transaction, isTransfer);
+	const budget = useCategoryBudget(
+		transaction,
+		isTransfer || transaction.currency.isoCode !== primaryCurrency.isoCode,
+	);
 
 	const changed = (Object.keys(initial) as (keyof typeof initial)[]).filter(
 		(key) => values[key] !== initial[key],
@@ -128,12 +137,18 @@ function DetailForm({
 			return;
 		}
 
+		const bookedAt = new Date(next.bookedAt);
+		if (Number.isNaN(bookedAt.getTime())) {
+			setError("Pick a valid date and time.");
+			return;
+		}
+
 		const body: Record<string, unknown> = {};
 		for (const key of fields) {
 			if (key === "categoriesId") body.categoriesId = next.categoriesId || null;
 			else if (key === "description") body.description = next.description.trim() || null;
 			else if (key === "counterparty") body.counterparty = next.counterparty.trim();
-			else if (key === "bookedAt") body.bookedAt = new Date(next.bookedAt).toISOString();
+			else if (key === "bookedAt") body.bookedAt = bookedAt.toISOString();
 			else body.recurring = next.recurring;
 		}
 
@@ -246,7 +261,7 @@ function DetailForm({
 					date or note, or deleting it, applies to both sides.
 				</p>
 			) : budget ? (
-				<BudgetImpact budget={budget} transaction={transaction} />
+				<BudgetImpact budget={budget} transaction={transaction} currency={primaryCurrency} />
 			) : null}
 
 			<div className="mt-auto flex gap-2.5">
@@ -320,10 +335,10 @@ function DetailRow({
 }
 
 /** The monthly budget that tracks this transaction's category, if one exists. */
-function useCategoryBudget(transaction: DetailTransaction, isTransfer: boolean) {
+function useCategoryBudget(transaction: DetailTransaction, excluded: boolean) {
 	const [budget, setBudget] = React.useState<BudgetWithSpending | null>(null);
 	const categoryId = transaction.categoriesId;
-	const eligible = !isTransfer && transaction.type === "outgoing" && categoryId !== null;
+	const eligible = !excluded && transaction.type === "outgoing" && categoryId !== null;
 
 	React.useEffect(() => {
 		if (!eligible) return;
@@ -348,9 +363,11 @@ function useCategoryBudget(transaction: DetailTransaction, isTransfer: boolean) 
 function BudgetImpact({
 	budget,
 	transaction,
+	currency,
 }: {
 	budget: BudgetWithSpending;
 	transaction: DetailTransaction;
+	currency: CurrencyFormat;
 }) {
 	const limit = Number(budget.amount);
 	const spent = budget.currentSpending;
@@ -362,8 +379,6 @@ function BudgetImpact({
 		transaction.bookedAtDate.getFullYear() === now.getFullYear() &&
 		transaction.bookedAtDate.getMonth() === now.getMonth();
 	const leftBefore = limit - (spent - amount);
-	// The budget's figures come from the user's primary currency; only compare like with like.
-	const currency = transaction.currency;
 
 	return (
 		<div className="bg-sunk/40 border-border rounded-[14px] border p-4">
