@@ -284,6 +284,12 @@ function VerifyEmailState({
 			}
 			captureClientEvent("verification_email_resent");
 			setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+		} catch (err) {
+			setResendError(
+				err instanceof Error && err.message
+					? err.message
+					: "That didn't send. Try again in a moment.",
+			);
 		} finally {
 			setResending(false);
 		}

@@ -93,6 +93,10 @@ function RequestLinkForm() {
 			}
 			captureClientEvent("password_reset_link_succeeded");
 			setSentTo(address);
+		} catch (err) {
+			const message = err instanceof Error && err.message ? err.message : undefined;
+			setError(message ?? "We couldn't send the link. Please try again.");
+			captureClientEvent("password_reset_link_failed", { error: message });
 		} finally {
 			setIsRequesting(false);
 		}
@@ -196,6 +200,10 @@ function SetNewPasswordForm({ token }: { token: string }) {
 			}
 			captureClientEvent("password_reset_succeeded");
 			setDone(true);
+		} catch (err) {
+			const message = err instanceof Error && err.message ? err.message : undefined;
+			setError(message ?? "We couldn't save that password. Please try again.");
+			captureClientEvent("password_reset_failed", { error: message });
 		} finally {
 			setIsResetting(false);
 		}

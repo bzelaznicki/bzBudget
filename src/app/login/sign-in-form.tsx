@@ -124,6 +124,9 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 				return;
 			}
 			setVerificationSent(true);
+		} catch (err) {
+			const message = err instanceof Error && err.message ? err.message : "That didn't send.";
+			setError({ message, unverified: false });
 		} finally {
 			setResending(false);
 		}
