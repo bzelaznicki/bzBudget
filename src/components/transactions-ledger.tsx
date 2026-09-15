@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import {
+	IconArrowsLeftRight,
+	IconRepeat,
 	IconChevronLeft,
 	IconChevronRight,
 	IconChevronsLeft,
@@ -13,17 +15,10 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TransactionDetailSheet } from "@/components/transaction-detail-sheet";
+import { ConfirmDialog } from "@/components/warm-ledger/confirm-dialog";
 import { Amount, CategoryChip, Monogram, Panel } from "@/components/warm-ledger/primitives";
 import { useTransactionEvents } from "@/contexts/transaction-events-context";
 import type { TransactionResponse } from "@/db/queries/transactions";
@@ -130,10 +125,12 @@ function groupByDay(entries: LedgerEntry[]): DayGroup[] {
 export function TransactionsLedger({
 	accountNames,
 	categories,
+	primaryCurrency,
 }: {
 	/** Account id -> display name, so rows can name the account they belong to. */
 	accountNames: Record<string, string>;
 	categories: { id: string; name: string }[];
+	primaryCurrency: TransactionResponse["currency"];
 }) {
 	const [entries, setEntries] = React.useState<LedgerEntry[]>([]);
 	const [total, setTotal] = React.useState(0);
@@ -168,6 +165,7 @@ export function TransactionsLedger({
 	const [error, setError] = React.useState<string | null>(null);
 	const [reloadKey, setReloadKey] = React.useState(0);
 	const [pendingDelete, setPendingDelete] = React.useState<LedgerEntry | null>(null);
+	const [selected, setSelected] = React.useState<LedgerEntry | null>(null);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 
 	const { subscribeTransactionCreated } = useTransactionEvents();
@@ -243,8 +241,9 @@ export function TransactionsLedger({
 				throw new Error(payload?.error ?? "Failed to delete transaction.");
 			}
 
-			toast.success("Transaction deleted.");
+			toast.success(pendingDelete.transferId ? "Transfer deleted." : "Transaction deleted.");
 			setPendingDelete(null);
+			setSelected(null);
 			setReloadKey((key) => key + 1);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to delete transaction.");
@@ -252,6 +251,25 @@ export function TransactionsLedger({
 			setIsDeleting(false);
 		}
 	}
+
+	const deleteDescription = (() => {
+		if (!pendingDelete) return null;
+		const when = formatDayHeading(pendingDelete.bookedAtDate);
+		if (pendingDelete.transferId) {
+			const amount = formatMoney(Math.abs(pendingDelete.signedAmount), pendingDelete.currency);
+			return (
+				`${amount} on ${when}. Both sides go — money leaves the one account and arrives in ` +
+				"the other — so both balances change back. This can't be undone."
+			);
+		}
+		const amount = formatMoney(pendingDelete.signedAmount, pendingDelete.currency, {
+			signed: true,
+		});
+		return (
+			`${amount} on ${when}. The account balance and any budget it counted towards update ` +
+			"straight away. This can't be undone."
+		);
+	})();
 
 	const rangeStart = total === 0 ? 0 : pageIndex * PAGE_SIZE + 1;
 	const rangeEnd = Math.min((pageIndex + 1) * PAGE_SIZE, total);
@@ -360,23 +378,51 @@ export function TransactionsLedger({
 							{group.entries.map((entry) => (
 								<div
 									key={entry.id}
-									className="border-border flex items-center gap-3.5 border-b px-5.5 py-3"
+									className="border-border hover:bg-sunk/30 flex items-center gap-2 border-b pr-5.5"
 								>
-									<Monogram label={monogram(entry.counterparty)} className="size-9.5 rounded-xl" />
-									<div className="min-w-0 flex-1 leading-tight">
-										<div className="truncate text-sm font-medium">{entry.counterparty}</div>
-										<div className="text-muted-foreground truncate text-[11.5px]">
-											{[entry.description || "—", accountNames[entry.accountsId]]
-												.filter(Boolean)
-												.join(" · ")}
+									<button
+										type="button"
+										aria-label={`Open ${entry.counterparty}`}
+										onClick={() => setSelected(entry)}
+										className="focus-visible:bg-sunk/40 flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 py-3 pl-5.5 text-left outline-none"
+									>
+										{entry.transferId ? (
+											<span className="bg-sunk text-muted-foreground flex size-9.5 flex-none items-center justify-center rounded-xl">
+												<IconArrowsLeftRight className="size-4" />
+											</span>
+										) : (
+											<Monogram
+												label={monogram(entry.counterparty)}
+												className="size-9.5 rounded-xl"
+											/>
+										)}
+										<div className="min-w-0 flex-1 leading-tight">
+											<div className="flex items-center gap-1.5 text-sm font-medium">
+												<span className="truncate">{entry.counterparty}</span>
+												{entry.recurring ? (
+													<IconRepeat
+														className="text-muted-foreground size-3.5 flex-none"
+														aria-label="Recurring"
+													/>
+												) : null}
+											</div>
+											<div className="text-muted-foreground truncate text-[11.5px]">
+												{[entry.description || "—", accountNames[entry.accountsId]]
+													.filter(Boolean)
+													.join(" · ")}
+											</div>
 										</div>
-									</div>
-									{entry.category?.name ? <CategoryChip>{entry.category.name}</CategoryChip> : null}
-									<Amount
-										amount={entry.signedAmount}
-										currency={entry.currency}
-										className="w-[120px] flex-none text-right text-[14.5px]"
-									/>
+										{entry.transferId ? (
+											<CategoryChip>Transfer</CategoryChip>
+										) : entry.category?.name ? (
+											<CategoryChip>{entry.category.name}</CategoryChip>
+										) : null}
+										<Amount
+											amount={entry.signedAmount}
+											currency={entry.currency}
+											className="w-[120px] flex-none text-right text-[14.5px]"
+										/>
+									</button>
 									<Button
 										variant="ghost"
 										size="icon"
@@ -431,35 +477,38 @@ export function TransactionsLedger({
 				</div>
 			</Panel>
 
-			<Dialog
+			<TransactionDetailSheet
+				transaction={selected}
+				accountName={selected ? accountNames[selected.accountsId] : undefined}
+				categories={categories}
+				primaryCurrency={primaryCurrency}
+				open={selected !== null}
+				onOpenChange={(open) => !open && setSelected(null)}
+				onSaved={(transaction) => {
+					setSelected(toEntry(transaction));
+					setReloadKey((key) => key + 1);
+				}}
+				onDelete={(transaction) => setPendingDelete(transaction as LedgerEntry)}
+			/>
+
+			<ConfirmDialog
 				open={pendingDelete !== null}
 				onOpenChange={(open) => !open && setPendingDelete(null)}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete transaction</DialogTitle>
-						<DialogDescription>
-							{pendingDelete
-								? `${pendingDelete.counterparty} · ${formatMoney(
-										pendingDelete.signedAmount,
-										pendingDelete.currency,
-										{ signed: true },
-									)}. This can't be undone.`
-								: null}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<DialogClose asChild>
-							<Button variant="outline" disabled={isDeleting}>
-								Cancel
-							</Button>
-						</DialogClose>
-						<Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
-							{isDeleting ? "Deleting…" : "Delete"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				icon={<IconTrash />}
+				title={
+					pendingDelete?.transferId
+						? "Delete this transfer?"
+						: pendingDelete
+							? `Delete “${pendingDelete.counterparty}”?`
+							: "Delete transaction?"
+				}
+				description={deleteDescription}
+				cancelLabel="Keep it"
+				confirmLabel={pendingDelete?.transferId ? "Delete transfer" : "Delete transaction"}
+				pendingLabel="Deleting…"
+				pending={isDeleting}
+				onConfirm={confirmDelete}
+			/>
 		</div>
 	);
 }

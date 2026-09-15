@@ -1,16 +1,17 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { IconChevronRight, IconList } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconChevronRight, IconList } from "@tabler/icons-react";
 
 import { SiteHeader } from "@/components/site-header";
+import { TransferDialog } from "@/components/transfer-dialog";
 import { Button } from "@/components/ui/button";
 import { maskIban, StatusBadge } from "@/components/warm-ledger/account-row";
 import { BalanceChart } from "@/components/warm-ledger/balance-chart";
 import { EmptyHint, Money, Monogram, Panel } from "@/components/warm-ledger/primitives";
 import { TransactionRow } from "@/components/warm-ledger/transaction-row";
 import { getUserBankAccount } from "@/db/queries/accounts";
-import { getAccountDetailFigures } from "@/db/queries/overview";
+import { getAccountBalances, getAccountDetailFigures } from "@/db/queries/overview";
 import { countUserTransactions, getUserTransactions } from "@/db/queries/transactions";
 import { auth } from "@/lib/auth";
 import { formatMoney, formatRowTimestamp, monogram } from "@/lib/format";
@@ -53,11 +54,12 @@ export default async function AccountDetailPage({ params, searchParams }: Accoun
 	const range: RangeKey = rangeParam && rangeParam in RANGES ? (rangeParam as RangeKey) : "90d";
 	const userId = session.user.id;
 
-	const [account, figures, recent, transactionCount] = await Promise.all([
+	const [account, figures, recent, transactionCount, balances] = await Promise.all([
 		getUserBankAccount(userId, accountId),
 		getAccountDetailFigures(userId, accountId, RANGES[range]),
 		getUserTransactions({ usersId: userId, accountId, limit: 5 }),
 		countUserTransactions({ usersId: userId, accountId }),
+		getAccountBalances(userId),
 	]);
 
 	if (!account || !figures) {
@@ -130,6 +132,19 @@ export default async function AccountDetailPage({ params, searchParams }: Accoun
 								accountId={account.id}
 								accountName={account.name}
 								variant="default"
+							/>
+						) : balances.some(
+								(entry) => entry.id !== account.id && entry.currency.isoCode === currency.isoCode,
+						  ) ? (
+							<TransferDialog
+								accounts={balances}
+								defaultFromId={account.id}
+								trigger={
+									<Button variant="outline" size="sm" className="rounded-[10px]">
+										<IconArrowsLeftRight />
+										Move money
+									</Button>
+								}
 							/>
 						) : null}
 					</div>

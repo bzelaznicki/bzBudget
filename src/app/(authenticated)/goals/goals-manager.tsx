@@ -2,7 +2,11 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { FormAlert } from "@/components/auth/auth-fields";
+import { ConfirmDialog } from "@/components/warm-ledger/confirm-dialog";
+import { FieldLabel, SegmentedControl } from "@/components/warm-ledger/primitives";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +24,8 @@ import { createGoalSchema, goalStatusSchema } from "@/lib/validation/goals";
 
 type Goal = Awaited<ReturnType<typeof listUserGoals>>[number];
 const selectClass = "h-10 w-full rounded-md border bg-background px-3 text-sm";
+const fieldSelectClass =
+	"border-input bg-card focus-visible:ring-ring/50 h-11 w-full rounded-[11px] border px-3 text-sm outline-none focus-visible:ring-[3px]";
 const statuses = goalStatusSchema.options;
 
 async function saveRequest(url: string, method: string, body?: unknown) {
@@ -191,12 +197,13 @@ export function GoalsManager({
 					if (!open && !busy) setEditor(null);
 				}}
 			>
-				<DialogContent className="max-h-[90dvh] overflow-y-auto">
+				<DialogContent className="gap-4.5">
 					<DialogHeader>
-						<DialogTitle>{editor === "new" ? "Add savings goal" : "Edit savings goal"}</DialogTitle>
-						<DialogDescription>
-							Enter your total saved so far. You choose when to mark a goal completed, paused, or
-							missed.
+						<DialogTitle className="text-base">
+							{editor === "new" ? "New savings goal" : "Edit savings goal"}
+						</DialogTitle>
+						<DialogDescription className="text-[12.5px]">
+							Enter your total saved so far. You choose when a goal is completed, paused or missed.
 						</DialogDescription>
 					</DialogHeader>
 					{editor !== null && (
@@ -216,35 +223,19 @@ export function GoalsManager({
 					)}
 				</DialogContent>
 			</Dialog>
-			<Dialog
+			<ConfirmDialog
 				open={deleting !== null}
-				onOpenChange={(open) => {
-					if (!open && !busy) setDeleting(null);
-				}}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete goal</DialogTitle>
-						<DialogDescription>
-							Delete &quot;{deleting?.name}&quot; from your goals? Your accounts and transactions
-							will stay the same.
-						</DialogDescription>
-					</DialogHeader>
-					{deleteError && (
-						<p role="alert" className="text-sm text-destructive">
-							{deleteError}
-						</p>
-					)}
-					<div className="flex justify-end gap-2">
-						<Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>
-							Cancel
-						</Button>
-						<Button variant="destructive" disabled={busy} onClick={confirmDelete}>
-							{busy ? "Deleting..." : "Delete goal"}
-						</Button>
-					</div>
-				</DialogContent>
-			</Dialog>
+				onOpenChange={(open) => !open && setDeleting(null)}
+				icon={<IconTrash />}
+				title={`Delete “${deleting?.name ?? ""}”?`}
+				description="The goal and its progress go. Your accounts and transactions stay exactly as they are."
+				cancelLabel="Keep it"
+				confirmLabel="Delete goal"
+				pendingLabel="Deleting…"
+				pending={busy}
+				error={deleteError}
+				onConfirm={confirmDelete}
+			/>
 		</>
 	);
 }
@@ -268,6 +259,7 @@ function GoalForm({
 }) {
 	const id = useId();
 	const [error, setError] = useState("");
+	const [status, setStatus] = useState<(typeof statuses)[number]>(goal?.status ?? "active");
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (busy) return;
@@ -298,10 +290,11 @@ function GoalForm({
 		}
 	}
 	return (
-		<form onSubmit={submit} className="space-y-4">
-			<fieldset disabled={busy} className="space-y-4">
-				<div className="space-y-2">
-					<Label htmlFor={`${id}-name`}>Name</Label>
+		<form onSubmit={submit} className="grid gap-4.5">
+			{error && <FormAlert>{error}</FormAlert>}
+			<fieldset disabled={busy} className="grid gap-3.5">
+				<div className="grid gap-1.5">
+					<FieldLabel htmlFor={`${id}-name`}>Name</FieldLabel>
 					<Input
 						id={`${id}-name`}
 						name="name"
@@ -309,26 +302,16 @@ function GoalForm({
 						maxLength={100}
 						defaultValue={goal?.name}
 						placeholder="Emergency fund"
+						className="h-11"
+						autoFocus
 					/>
 				</div>
-				<div className="grid grid-cols-2 gap-4">
-					<div className="space-y-2">
-						<Label htmlFor={`${id}-target`}>Target amount</Label>
-						<Input
-							id={`${id}-target`}
-							name="targetAmount"
-							type="number"
-							inputMode="decimal"
-							required
-							min="0.01"
-							max="9999999999.99"
-							step="0.01"
-							defaultValue={goal?.targetAmount}
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor={`${id}-current`}>Saved so far</Label>
-						<Input
+				<div className="bg-sunk/40 border-border grid gap-3 rounded-2xl border px-5 py-4 sm:grid-cols-2">
+					<div className="grid gap-1">
+						<FieldLabel htmlFor={`${id}-current`} className="text-eyebrow">
+							Saved so far
+						</FieldLabel>
+						<input
 							id={`${id}-current`}
 							name="currentAmount"
 							type="number"
@@ -338,39 +321,59 @@ function GoalForm({
 							max="9999999999.99"
 							step="0.01"
 							defaultValue={goal?.currentAmount ?? "0.00"}
+							className="text-money w-full bg-transparent text-[34px] caret-[var(--income)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+						/>
+					</div>
+					<div className="grid gap-1">
+						<FieldLabel htmlFor={`${id}-target`} className="text-eyebrow">
+							Target
+						</FieldLabel>
+						<input
+							id={`${id}-target`}
+							name="targetAmount"
+							type="number"
+							inputMode="decimal"
+							required
+							min="0.01"
+							max="9999999999.99"
+							step="0.01"
+							defaultValue={goal?.targetAmount}
+							placeholder="0.00"
+							className="text-money placeholder:text-muted-foreground/50 w-full bg-transparent text-[34px] caret-[var(--income)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
 						/>
 					</div>
 				</div>
-				<div className="space-y-2">
-					<Label htmlFor={`${id}-currency`}>Currency</Label>
-					<select
-						id={`${id}-currency`}
-						name="currenciesId"
-						required
-						className={selectClass}
-						defaultValue={
-							goal?.currenciesId ??
-							(currencies.some((currency) => currency.id === defaultCurrencyId)
-								? defaultCurrencyId
-								: currencies[0]?.id)
-						}
-					>
-						{currencies.map((currency) => (
-							<option key={currency.id} value={currency.id}>
-								{currency.isoCode} — {currency.name}
-							</option>
-						))}
-					</select>
-					{goal && (
-						<p className="text-xs text-muted-foreground">
-							If you change currency, enter the amounts in the new currency. Amounts are not
-							converted automatically.
-						</p>
-					)}
-				</div>
-				<div className="grid grid-cols-2 gap-4">
-					<div className="space-y-2">
-						<Label htmlFor={`${id}-due`}>Target date (optional)</Label>
+				<div className="grid gap-3 sm:grid-cols-2">
+					<div className="grid content-start gap-1.5">
+						<FieldLabel htmlFor={`${id}-currency`}>Currency</FieldLabel>
+						<select
+							id={`${id}-currency`}
+							name="currenciesId"
+							required
+							className={fieldSelectClass}
+							defaultValue={
+								goal?.currenciesId ??
+								(currencies.some((currency) => currency.id === defaultCurrencyId)
+									? defaultCurrencyId
+									: currencies[0]?.id)
+							}
+						>
+							{currencies.map((currency) => (
+								<option key={currency.id} value={currency.id}>
+									{currency.isoCode} — {currency.name}
+								</option>
+							))}
+						</select>
+						{goal && (
+							<p className="text-muted-foreground text-[11.5px]">
+								Amounts aren&apos;t converted if you change currency.
+							</p>
+						)}
+					</div>
+					<div className="grid content-start gap-1.5">
+						<FieldLabel htmlFor={`${id}-due`}>
+							Target date <span className="text-muted-foreground">· optional</span>
+						</FieldLabel>
 						<Input
 							id={`${id}-due`}
 							name="dueDate"
@@ -378,47 +381,51 @@ function GoalForm({
 							min="0001-01-01"
 							max="9999-12-31"
 							defaultValue={goal?.dueDate ?? ""}
+							className="h-11"
 						/>
 					</div>
-					<div className="space-y-2">
-						<Label htmlFor={`${id}-status`}>Status</Label>
-						<select
-							id={`${id}-status`}
-							name="status"
-							className={selectClass}
-							defaultValue={goal?.status ?? "active"}
-						>
-							{statuses.map((status) => (
-								<option key={status} value={status}>
-									{status[0].toUpperCase() + status.slice(1)}
-								</option>
-							))}
-						</select>
-					</div>
 				</div>
-				<div className="space-y-2">
-					<Label htmlFor={`${id}-description`}>Notes (optional)</Label>
+				<div className="grid gap-1.5">
+					<span className="text-secondary-foreground text-[12.5px]">Status</span>
+					<input type="hidden" name="status" value={status} />
+					<SegmentedControl
+						label="Status"
+						value={status}
+						onChange={setStatus}
+						disabled={busy}
+						options={statuses.map((value) => ({
+							value,
+							label: value[0].toUpperCase() + value.slice(1),
+						}))}
+					/>
+				</div>
+				<div className="grid gap-1.5">
+					<FieldLabel htmlFor={`${id}-description`}>
+						Notes <span className="text-muted-foreground">· optional</span>
+					</FieldLabel>
 					<textarea
 						id={`${id}-description`}
 						name="description"
 						maxLength={500}
-						rows={3}
-						className="w-full rounded-md border bg-background p-3 text-sm"
+						rows={2}
+						placeholder="What it's for"
+						className="border-input bg-card placeholder:text-muted-foreground focus-visible:ring-ring/50 w-full rounded-[11px] border px-3 py-2.5 text-sm outline-none focus-visible:ring-[3px]"
 						defaultValue={goal?.description ?? ""}
 					/>
 				</div>
 			</fieldset>
-			{error && (
-				<p role="alert" className="text-sm text-destructive">
-					{error}
-				</p>
-			)}
-			<div className="flex justify-end gap-2">
-				<Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+			<div className="flex gap-2.5">
+				<Button
+					type="button"
+					variant="outline"
+					className="h-11 rounded-xl px-4.5"
+					disabled={busy}
+					onClick={onCancel}
+				>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={busy}>
-					{busy ? "Saving..." : goal ? "Save changes" : "Create goal"}
+				<Button type="submit" className="h-11 flex-1 rounded-xl" disabled={busy}>
+					{busy ? "Saving…" : goal ? "Save changes" : "Create goal"}
 				</Button>
 			</div>
 		</form>

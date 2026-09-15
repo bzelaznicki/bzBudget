@@ -7,52 +7,53 @@ import { toast } from "sonner";
 
 import type { BudgetWithSpending } from "@/db/queries/budgets";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/warm-ledger/confirm-dialog";
 import {
 	BudgetStateLabel,
+	FieldLabel,
 	Panel,
 	ProgressRing,
+	SegmentedControl,
 	budgetState,
 	budgetStateColor,
 } from "@/components/warm-ledger/primitives";
 import { type CurrencyFormat, formatMoney } from "@/lib/format";
 import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import {
-	Dialog as EditDialog,
-	DialogContent as EditDialogContent,
-	DialogHeader as EditDialogHeader,
-	DialogTitle as EditDialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 
 type BudgetsListProps = {
 	budgets: BudgetWithSpending[];
 	currency: CurrencyFormat;
 };
 
+type BudgetPeriod = "weekly" | "monthly" | "yearly";
+
+type BudgetUpdates = {
+	amount?: number;
+	alertThreshold?: number;
+	emailAlerts?: boolean;
+	period?: string;
+};
+
+const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
+	{ value: "weekly", label: "Weekly" },
+	{ value: "monthly", label: "Monthly" },
+	{ value: "yearly", label: "Yearly" },
+];
+
 export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListProps) {
 	const router = useRouter();
 	const [budgets, setBudgets] = React.useState<BudgetWithSpending[]>(initialBudgets);
 	const [pendingDeletions, setPendingDeletions] = React.useState<Set<string>>(() => new Set());
 	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-	const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+	const [editSheetOpen, setEditSheetOpen] = React.useState(false);
 	const [budgetPendingDelete, setBudgetPendingDelete] = React.useState<BudgetWithSpending | null>(
 		null,
 	);
@@ -116,10 +117,7 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 	);
 
 	const updateBudget = React.useCallback(
-		async (
-			budgetId: string,
-			updates: { amount?: number; alertThreshold?: number; emailAlerts?: boolean; period?: string },
-		): Promise<boolean> => {
+		async (budgetId: string, updates: BudgetUpdates): Promise<boolean> => {
 			try {
 				const res = await fetch(`/api/budgets/${budgetId}`, {
 					method: "PATCH",
@@ -165,8 +163,8 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 		}
 	}, []);
 
-	const handleEditDialogOpenChange = React.useCallback((open: boolean) => {
-		setEditDialogOpen(open);
+	const handleEditSheetOpenChange = React.useCallback((open: boolean) => {
+		setEditSheetOpen(open);
 		if (!open) {
 			setBudgetPendingEdit(null);
 		}
@@ -177,9 +175,9 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 		setDeleteDialogOpen(true);
 	}, []);
 
-	const openEditDialog = React.useCallback((budget: BudgetWithSpending) => {
+	const openEditSheet = React.useCallback((budget: BudgetWithSpending) => {
 		setBudgetPendingEdit(budget);
-		setEditDialogOpen(true);
+		setEditSheetOpen(true);
 	}, []);
 
 	const handleConfirmDelete = React.useCallback(async () => {
@@ -195,17 +193,12 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 	}, [budgetPendingDelete, deleteBudget]);
 
 	const handleConfirmEdit = React.useCallback(
-		async (updates: {
-			amount?: number;
-			alertThreshold?: number;
-			emailAlerts?: boolean;
-			period?: string;
-		}) => {
+		async (updates: BudgetUpdates) => {
 			if (!budgetPendingEdit) return;
 			const budget = budgetPendingEdit;
 			const succeeded = await updateBudget(budget.id, updates);
 			if (succeeded) {
-				setEditDialogOpen(false);
+				setEditSheetOpen(false);
 				setBudgetPendingEdit(null);
 			}
 		},
@@ -275,7 +268,7 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 										variant="ghost"
 										size="icon"
 										className="text-muted-foreground hover:text-foreground size-7"
-										onClick={() => openEditDialog(budget)}
+										onClick={() => openEditSheet(budget)}
 										disabled={isDeleting}
 										type="button"
 										aria-label={`Edit ${displayName} budget`}
@@ -300,122 +293,129 @@ export function BudgetsList({ budgets: initialBudgets, currency }: BudgetsListPr
 				</div>
 			)}
 
-			<Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete budget</DialogTitle>
-						<DialogDescription>
-							{budgetPendingDelete
-								? `Are you sure you want to delete the budget for "${budgetPendingDelete.category?.name ?? "Overall"}"? This action cannot be undone.`
-								: "Are you sure you want to delete this budget? This action cannot be undone."}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter className="gap-2">
-						<DialogClose asChild>
-							<Button type="button" variant="outline" disabled={budgetPendingDeleteIsDeleting}>
-								Cancel
-							</Button>
-						</DialogClose>
-						<Button
-							type="button"
-							variant="destructive"
-							onClick={handleConfirmDelete}
-							disabled={!budgetPendingDelete || budgetPendingDeleteIsDeleting}
-						>
-							{budgetPendingDeleteIsDeleting ? "Deleting..." : "Confirm"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			<ConfirmDialog
+				open={deleteDialogOpen}
+				onOpenChange={handleDeleteDialogOpenChange}
+				icon={<IconTrash />}
+				title={`Delete the “${budgetPendingDelete?.category?.name ?? "Overall"}” budget?`}
+				description="Your transactions stay exactly as they are — only the limit and its alerts go. This can't be undone."
+				cancelLabel="Keep it"
+				confirmLabel="Delete budget"
+				pendingLabel="Deleting…"
+				pending={budgetPendingDeleteIsDeleting}
+				onConfirm={handleConfirmDelete}
+			/>
 
-			<EditDialog open={editDialogOpen} onOpenChange={handleEditDialogOpenChange}>
-				<EditDialogContent>
-					<EditDialogHeader>
-						<EditDialogTitle>Edit Budget</EditDialogTitle>
-					</EditDialogHeader>
+			<Sheet open={editSheetOpen} onOpenChange={handleEditSheetOpenChange}>
+				<SheetContent className="w-full gap-5 border-l px-7 py-6.5 shadow-[-24px_0_48px_-24px_rgba(27,25,23,0.4)] sm:max-w-[440px]">
 					{budgetPendingEdit && (
 						<EditBudgetForm
+							key={budgetPendingEdit.id}
 							budget={budgetPendingEdit}
+							currency={currency}
 							onSubmit={handleConfirmEdit}
-							onCancel={() => setEditDialogOpen(false)}
+							onDelete={() => {
+								const budget = budgetPendingEdit;
+								handleEditSheetOpenChange(false);
+								openDeleteDialog(budget);
+							}}
 						/>
 					)}
-				</EditDialogContent>
-			</EditDialog>
+				</SheetContent>
+			</Sheet>
 		</>
 	);
 }
 
 function EditBudgetForm({
 	budget,
+	currency,
 	onSubmit,
-	onCancel,
+	onDelete,
 }: {
 	budget: BudgetWithSpending;
-	onSubmit: (updates: {
-		amount?: number;
-		alertThreshold?: number;
-		emailAlerts?: boolean;
-		period?: string;
-	}) => void;
-	onCancel: () => void;
+	currency: CurrencyFormat;
+	onSubmit: (updates: BudgetUpdates) => Promise<void>;
+	onDelete: () => void;
 }) {
-	const [amount, setAmount] = React.useState(Number(budget.amount));
+	const [amount, setAmount] = React.useState(budget.amount);
 	const [alertThreshold, setAlertThreshold] = React.useState(budget.alertThreshold);
 	const [emailAlerts, setEmailAlerts] = React.useState(budget.emailAlerts);
-	const [period, setPeriod] = React.useState(budget.period);
+	const [period, setPeriod] = React.useState<BudgetPeriod>(budget.period);
+	const [saving, setSaving] = React.useState(false);
 
-	const isAmountValid = Number.isFinite(amount) && amount > 0;
+	const numericAmount = Number(amount);
+	const isAmountValid = amount.trim() !== "" && Number.isFinite(numericAmount) && numericAmount > 0;
+	const state = budgetState(budget);
+	const displayName = budget.category?.name ?? "Overall";
 
-	const handleSubmit = () => {
-		if (!isAmountValid) {
-			return;
+	const handleSubmit = async (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!isAmountValid || saving) return;
+		setSaving(true);
+		try {
+			await onSubmit({ amount: numericAmount, alertThreshold, emailAlerts, period });
+		} finally {
+			setSaving(false);
 		}
-		onSubmit({
-			amount,
-			alertThreshold,
-			emailAlerts,
-			period,
-		});
 	};
 
 	return (
-		<div className="space-y-4 py-4">
-			<div className="space-y-2">
-				<Label htmlFor="edit-amount">Budget Amount</Label>
-				<Input
+		<form onSubmit={handleSubmit} className="flex min-h-full flex-col gap-5">
+			<SheetHeader className="p-0">
+				<span className="text-eyebrow">Edit budget</span>
+				<div className="mt-3 flex items-center gap-3.5">
+					<ProgressRing
+						percentage={budget.utilizationPercentage}
+						size={52}
+						strokeWidth={9}
+						color={budgetStateColor(state)}
+						className="flex-none"
+					/>
+					<div className="min-w-0 flex-1">
+						<SheetTitle className="truncate text-[17px]">{displayName}</SheetTitle>
+						<SheetDescription className="text-[12.5px]">
+							{formatMoney(budget.currentSpending, currency)} spent this{" "}
+							{budget.period.replace(/ly$/, "")}
+						</SheetDescription>
+					</div>
+				</div>
+			</SheetHeader>
+
+			<div className="bg-sunk/40 border-border rounded-2xl border px-5 py-4.5 focus-within:border-[var(--income)]">
+				<FieldLabel htmlFor="edit-amount" className="text-eyebrow block">
+					Limit
+				</FieldLabel>
+				<input
 					id="edit-amount"
-					type="number"
-					min="0.01"
-					step="0.01"
+					type="text"
+					inputMode="decimal"
+					autoComplete="off"
 					value={amount}
-					onChange={(e) => setAmount(parseFloat(e.target.value))}
-					className={!isAmountValid ? "border-red-500" : ""}
+					onChange={(event) => setAmount(event.target.value)}
+					aria-invalid={!isAmountValid}
+					className="text-money mt-1 w-full bg-transparent text-[46px] caret-[var(--income)] outline-none"
 				/>
-				{!isAmountValid && (
-					<p className="text-xs text-red-500">Please enter a valid amount greater than 0</p>
-				)}
+				{!isAmountValid ? (
+					<p className="text-destructive text-[12px]">Enter an amount greater than 0.</p>
+				) : null}
 			</div>
 
-			<div className="space-y-2">
-				<Label htmlFor="edit-period">Period</Label>
-				<Select
+			<div className="grid gap-2">
+				<span className="text-secondary-foreground text-[12.5px]">Resets</span>
+				<SegmentedControl
+					label="Period"
 					value={period}
-					onValueChange={(value: "weekly" | "monthly" | "yearly") => setPeriod(value)}
-				>
-					<SelectTrigger id="edit-period">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="weekly">Weekly</SelectItem>
-						<SelectItem value="monthly">Monthly</SelectItem>
-						<SelectItem value="yearly">Yearly</SelectItem>
-					</SelectContent>
-				</Select>
+					onChange={setPeriod}
+					options={PERIOD_OPTIONS}
+				/>
 			</div>
 
-			<div className="space-y-2">
-				<Label htmlFor="edit-threshold">Alert Threshold ({alertThreshold}%)</Label>
+			<div className="grid gap-3">
+				<div className="flex items-baseline justify-between">
+					<FieldLabel htmlFor="edit-threshold">Warn me at</FieldLabel>
+					<span className="text-numeric text-[13px]">{alertThreshold}%</span>
+				</div>
 				<Slider
 					id="edit-threshold"
 					min={1}
@@ -426,19 +426,38 @@ function EditBudgetForm({
 				/>
 			</div>
 
-			<div className="flex items-center space-x-2">
+			<div className="flex items-center gap-3">
+				<div className="flex-1 leading-snug">
+					<FieldLabel htmlFor="edit-email-alerts" className="text-foreground block text-[13.5px]">
+						Email alerts
+					</FieldLabel>
+					<div className="text-muted-foreground text-[11.5px]">
+						We&apos;ll write when spending reaches {alertThreshold}% of the limit
+					</div>
+				</div>
 				<Switch id="edit-email-alerts" checked={emailAlerts} onCheckedChange={setEmailAlerts} />
-				<Label htmlFor="edit-email-alerts">Enable email alerts</Label>
 			</div>
 
-			<div className="flex justify-end gap-2 pt-4">
-				<Button variant="outline" onClick={onCancel}>
-					Cancel
+			<div className="mt-auto flex gap-2.5">
+				<Button
+					type="submit"
+					className="h-10 flex-1 rounded-[11px]"
+					disabled={!isAmountValid || saving}
+				>
+					{saving ? "Saving…" : "Save changes"}
 				</Button>
-				<Button onClick={handleSubmit} disabled={!isAmountValid}>
-					Save Changes
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="border-destructive/35 text-destructive hover:bg-destructive/5 hover:text-destructive size-10 rounded-[11px]"
+					onClick={onDelete}
+					disabled={saving}
+					aria-label={`Delete ${displayName} budget`}
+				>
+					<IconTrash className="size-4" />
 				</Button>
 			</div>
-		</div>
+		</form>
 	);
 }

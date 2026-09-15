@@ -213,6 +213,7 @@ export async function getCategorySpendBreakdown(
 				eq(transactions.usersId, userId),
 				isNull(transactions.deletedAt),
 				eq(transactions.type, "outgoing"),
+				isNull(transactions.transferId),
 				eq(currencies.isoCode, resolvedCurrency.isoCode),
 				gte(transactions.bookedAt, sql`date_trunc('month', CURRENT_DATE)`),
 			),
@@ -286,9 +287,10 @@ export async function getAccountDetailFigures(
 			opening: sql<string>`sum(case when ${transactions.bookedAt} < ${windowStart} then
 				case when ${transactions.type} = 'incoming' then ${transactions.amount} else -${transactions.amount} end
 			else 0 end)`,
-			monthIn: sql<string>`sum(case when ${transactions.type} = 'incoming'
+			// Transfers move the balance but aren't money in or out of your finances.
+			monthIn: sql<string>`sum(case when ${transactions.type} = 'incoming' and ${transactions.transferId} is null
 				and ${transactions.bookedAt} >= date_trunc('month', CURRENT_DATE) then ${transactions.amount} else 0 end)`,
-			monthOut: sql<string>`sum(case when ${transactions.type} = 'outgoing'
+			monthOut: sql<string>`sum(case when ${transactions.type} = 'outgoing' and ${transactions.transferId} is null
 				and ${transactions.bookedAt} >= date_trunc('month', CURRENT_DATE) then ${transactions.amount} else 0 end)`,
 		})
 		.from(transactions)

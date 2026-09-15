@@ -2,14 +2,14 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/site-header";
-import { Eyebrow, Money, Panel } from "@/components/warm-ledger/primitives";
+import { Eyebrow, Money } from "@/components/warm-ledger/primitives";
 import { listBudgetsWithSpending } from "@/db/queries/budgets";
 import { listUserCategories } from "@/db/queries/categories";
 import { getPrimaryCurrency } from "@/db/queries/overview";
 import { auth } from "@/lib/auth";
 import { daysRemainingInMonth, formatMoney } from "@/lib/format";
 import { BudgetsList } from "./budgets-list";
-import { CreateBudgetForm } from "./create-budget-form";
+import { NewBudgetSheet } from "./create-budget-form";
 
 export default async function BudgetsPage() {
 	const session = await auth.api.getSession({ headers: await headers() });
@@ -39,7 +39,7 @@ export default async function BudgetsPage() {
 
 	return (
 		<>
-			<SiteHeader title="Budgets" />
+			<SiteHeader title="Budgets" actions={<NewBudgetSheet categories={categories} />} />
 			<div className="flex flex-col gap-4.5 px-7 py-6">
 				<div className="flex flex-wrap items-end justify-between gap-4">
 					<div>
@@ -63,14 +63,6 @@ export default async function BudgetsPage() {
 				</div>
 
 				<BudgetsList budgets={budgetList} currency={currency} />
-
-				<Panel className="px-5.5 py-5">
-					<h2 className="mb-1 text-sm font-semibold">New budget</h2>
-					<p className="text-muted-foreground mb-4 text-[12.5px]">
-						Set a limit for a category or your overall spending, and choose when to be warned.
-					</p>
-					<CreateBudgetForm categories={categories} />
-				</Panel>
 			</div>
 		</>
 	);

@@ -208,6 +208,90 @@ export function ProgressRing({
 	);
 }
 
+/** Pill toggle on a sunk track — "Money out / Money in" in the 4a spec. */
+export function SegmentedControl<T extends string>({
+	value,
+	options,
+	onChange,
+	disabled,
+	label,
+	className,
+}: {
+	value: T;
+	options: { value: T; label: ReactNode }[];
+	onChange: (value: T) => void;
+	disabled?: boolean;
+	label: string;
+	className?: string;
+}) {
+	return (
+		<div
+			role="radiogroup"
+			aria-label={label}
+			className={cn("bg-sunk flex w-fit gap-1 rounded-[10px] p-[3px]", className)}
+		>
+			{options.map((option, index) => {
+				const selected = option.value === value;
+				return (
+					<button
+						key={option.value}
+						type="button"
+						role="radio"
+						aria-checked={selected}
+						tabIndex={selected ? 0 : -1}
+						disabled={disabled}
+						onClick={() => onChange(option.value)}
+						onKeyDown={(event) => {
+							const last = options.length - 1;
+							const target =
+								event.key === "ArrowRight" || event.key === "ArrowDown"
+									? (index + 1) % options.length
+									: event.key === "ArrowLeft" || event.key === "ArrowUp"
+										? (index - 1 + options.length) % options.length
+										: event.key === "Home"
+											? 0
+											: event.key === "End"
+												? last
+												: -1;
+							if (target === -1) return;
+							event.preventDefault();
+							onChange(options[target].value);
+							(
+								event.currentTarget.parentElement?.children[target] as HTMLElement | undefined
+							)?.focus();
+						}}
+						className={cn(
+							"focus-visible:ring-ring/50 rounded-lg px-4.5 py-1.5 text-[13px] outline-none transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+							selected
+								? "bg-card font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+								: "text-muted-foreground hover:text-foreground",
+						)}
+					>
+						{option.label}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+/** Label above a field, at the size and tone the Warm Ledger forms use. */
+export function FieldLabel({
+	htmlFor,
+	children,
+	className,
+}: {
+	htmlFor?: string;
+	children: ReactNode;
+	className?: string;
+}) {
+	return (
+		<label htmlFor={htmlFor} className={cn("text-secondary-foreground text-[12.5px]", className)}>
+			{children}
+		</label>
+	);
+}
+
 export function EmptyHint({ children }: { children: ReactNode }) {
 	return <p className="text-muted-foreground py-6 text-center text-[12.5px]">{children}</p>;
 }

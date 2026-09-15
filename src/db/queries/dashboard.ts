@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { transactions, currencies } from "../schema";
-import { sql, and, gte, lt, eq, sum, count } from "drizzle-orm";
+import { sql, and, gte, lt, eq, isNull, sum, count } from "drizzle-orm";
 
 export type DashboardResponse = {
 	current: number;
@@ -36,6 +36,9 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 				lt(transactions.bookedAt, startOfNextMonth),
 				eq(transactions.usersId, userId),
 				eq(transactions.type, "incoming"),
+				isNull(transactions.deletedAt),
+				isNull(transactions.transferId),
+				isNull(transactions.transferId),
 			),
 		)
 		.groupBy(currencies.id);
@@ -55,6 +58,9 @@ export async function dashboardIncomeSummary(userId: string): Promise<DashboardR
 				lt(transactions.bookedAt, startOfCurrentMonth),
 				eq(transactions.usersId, userId),
 				eq(transactions.type, "incoming"),
+				isNull(transactions.deletedAt),
+				isNull(transactions.transferId),
+				isNull(transactions.transferId),
 			),
 		)
 		.groupBy(currencies.id);
@@ -121,6 +127,9 @@ export async function dashboardExpensesSummary(
 				lt(transactions.bookedAt, startOfNextMonth),
 				eq(transactions.usersId, userId),
 				eq(transactions.type, "outgoing"),
+				isNull(transactions.deletedAt),
+				isNull(transactions.transferId),
+				isNull(transactions.transferId),
 			),
 		)
 		.groupBy(currencies.id);
@@ -140,6 +149,9 @@ export async function dashboardExpensesSummary(
 				lt(transactions.bookedAt, startOfCurrentMonth),
 				eq(transactions.usersId, userId),
 				eq(transactions.type, "outgoing"),
+				isNull(transactions.deletedAt),
+				isNull(transactions.transferId),
+				isNull(transactions.transferId),
 			),
 		)
 		.groupBy(currencies.id);

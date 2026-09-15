@@ -13,7 +13,6 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -35,6 +34,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Monogram, SegmentedControl } from "@/components/warm-ledger/primitives";
+import { monogram } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
 	parseTransactionAmount,
 	transactionFormSchema,
@@ -48,7 +51,8 @@ type TransactionMetaResponse = {
 	categories: CategoryResponse[];
 };
 
-const UNCATEGORIZED_SELECT_VALUE = "uncategorized";
+const LABEL_CLASS = "text-secondary-foreground text-[12.5px] font-normal";
+const FIELD_CLASS = "h-[42px] rounded-[11px]";
 
 export interface TransactionDialogProps {
 	open: boolean;
@@ -67,6 +71,8 @@ export function TransactionDialog({
 	const [metaLoading, setMetaLoading] = React.useState(false);
 	const [metaError, setMetaError] = React.useState<string | null>(null);
 	const fetchingMeta = React.useRef(false);
+	// Set by "Save & add another" so a successful submit keeps the dialog open.
+	const addAnother = React.useRef(false);
 
 	const form = useForm<TransactionFormValues>({
 		resolver: zodResolver(transactionFormSchema),
@@ -136,6 +142,9 @@ export function TransactionDialog({
 
 	const onSubmit = React.useCallback(
 		async (values: TransactionFormValues) => {
+			const keepOpen = addAnother.current;
+			addAnother.current = false;
+
 			let amountNumber: number;
 			try {
 				amountNumber = parseTransactionAmount(values.amount);
@@ -162,6 +171,7 @@ export function TransactionDialog({
 				bookedAt: bookedDate.toISOString(),
 				description: normalizedDescription,
 				categoriesId: values.categoriesId,
+				recurring: values.recurring,
 			};
 
 			captureClientEvent("transaction_create_submitted", {
@@ -195,8 +205,20 @@ export function TransactionDialog({
 					type: transaction.type,
 				});
 
-				form.reset(buildDefaultValues(meta));
-				onOpenChange(false);
+				if (keepOpen) {
+					// Keep the account, currency, type and date: a batch of entries usually shares them.
+					form.reset({
+						...buildDefaultValues(meta),
+						accountsId: values.accountsId,
+						currenciesId: values.currenciesId,
+						type: values.type,
+						bookedAt: values.bookedAt,
+					});
+					form.setFocus("amount");
+				} else {
+					form.reset(buildDefaultValues(meta));
+					onOpenChange(false);
+				}
 			} catch (error) {
 				const message = error instanceof Error ? error.message : "Unable to create transaction";
 				toast.error(message);
@@ -217,39 +239,169 @@ export function TransactionDialog({
 	const submitDisabled = isSubmitting || accounts.length === 0 || currencies.length === 0;
 	const showAccountHint = accounts.length === 0 && !metaLoading;
 
+	const selectedAccount = accounts.find((item) => item.id === form.watch("accountsId"));
+	const selectedCurrency = currencies.find((item) => item.id === form.watch("currenciesId"));
+	const counterparty = form.watch("counterparty");
+	const amountContext = [selectedCurrency?.isoCode, selectedAccount?.name]
+		.filter(Boolean)
+		.join(" · ");
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			{trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-			<DialogContent className="max-h-[90vh] overflow-y-auto">
+			<DialogContent className="gap-4.5">
 				<DialogHeader>
-					<DialogTitle>Add transaction</DialogTitle>
-					<DialogDescription>
-						Record a new transaction. Required fields are marked with an asterisk.
+					<DialogTitle className="text-base">New transaction</DialogTitle>
+					<DialogDescription className="sr-only">
+						Amount first — everything past the merchant is optional.
 					</DialogDescription>
 				</DialogHeader>
 				{metaError ? (
-					<div className="flex flex-col items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
-						<p className="font-medium text-destructive">{metaError}</p>
+					<div className="border-destructive/30 bg-destructive/5 flex flex-col items-start gap-3 rounded-xl border p-4 text-sm">
+						<p className="text-destructive font-medium">{metaError}</p>
 						<Button variant="outline" size="sm" onClick={handleRetry} disabled={metaLoading}>
 							Try again
 						</Button>
 					</div>
 				) : (
 					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+						<form
+							onSubmit={form.handleSubmit(onSubmit, () => {
+								addAnother.current = false;
+							})}
+							className="grid gap-4.5"
+						>
 							{showAccountHint ? (
-								<div className="rounded-md border border-muted-foreground/20 bg-muted/40 p-3 text-sm text-muted-foreground">
+								<div className="bg-sunk/60 border-border text-secondary-foreground rounded-xl border px-3.5 py-3 text-[12.5px]">
 									Add an account in settings before recording transactions.
 								</div>
 							) : null}
-							<div className="grid gap-4 md:grid-cols-2">
+
+							<FormField
+								control={form.control}
+								name="type"
+								render={({ field }) => (
+									<FormItem>
+										<SegmentedControl
+											label="Direction"
+											value={field.value}
+											onChange={field.onChange}
+											disabled={isSubmitting}
+											options={[
+												{ value: "outgoing", label: "Money out" },
+												{ value: "incoming", label: "Money in" },
+											]}
+										/>
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="amount"
+								render={({ field }) => (
+									<FormItem className="bg-sunk/40 border-border gap-1 rounded-2xl border px-5 py-4.5 focus-within:border-[var(--income)]">
+										<FormLabel className="text-eyebrow font-normal">Amount</FormLabel>
+										<div className="flex items-baseline gap-2">
+											<FormControl>
+												<input
+													{...field}
+													type="text"
+													inputMode="decimal"
+													placeholder="0.00"
+													autoComplete="off"
+													autoFocus
+													disabled={isSubmitting}
+													className="text-money placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent text-[46px] caret-[var(--income)] outline-none"
+												/>
+											</FormControl>
+											{amountContext ? (
+												<span className="text-muted-foreground flex-none text-[12.5px]">
+													{amountContext}
+												</span>
+											) : null}
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<div className="grid gap-3">
 								<FormField
 									control={form.control}
-									name="accountsId"
+									name="counterparty"
 									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Account *</FormLabel>
-											<FormControl>
+										<FormItem className="gap-1.5">
+											<FormLabel className={LABEL_CLASS}>Merchant</FormLabel>
+											<div className="relative">
+												{counterparty.trim() ? (
+													<Monogram
+														label={monogram(counterparty)}
+														className="pointer-events-none absolute top-1/2 left-2 size-6.5 -translate-y-1/2 rounded-lg text-[10px]"
+													/>
+												) : null}
+												<FormControl>
+													<Input
+														{...field}
+														placeholder="e.g. Rewe"
+														disabled={isSubmitting}
+														className={cn(FIELD_CLASS, counterparty.trim() && "pl-11")}
+													/>
+												</FormControl>
+											</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{categories.length > 0 ? (
+									<FormField
+										control={form.control}
+										name="categoriesId"
+										render={({ field }) => (
+											<FormItem className="gap-1.5">
+												<FormLabel className={LABEL_CLASS}>Category</FormLabel>
+												<div
+													role="radiogroup"
+													aria-label="Category"
+													className="flex max-h-[112px] flex-wrap gap-1.5 overflow-y-auto"
+												>
+													{categories.map((category) => {
+														const selected = field.value === category.id;
+														return (
+															<button
+																key={category.id}
+																type="button"
+																role="radio"
+																aria-checked={selected}
+																disabled={isSubmitting}
+																// Clicking the chosen chip again clears it: category is optional.
+																onClick={() => field.onChange(selected ? undefined : category.id)}
+																className={cn(
+																	"focus-visible:ring-ring/50 h-8 rounded-full border px-3.5 text-[12.5px] outline-none transition-colors focus-visible:ring-[3px]",
+																	selected
+																		? "bg-primary text-primary-foreground border-primary"
+																		: "bg-card border-input text-secondary-foreground hover:bg-sunk",
+																)}
+															>
+																{category.name}
+															</button>
+														);
+													})}
+												</div>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								) : null}
+
+								<div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
+									<FormField
+										control={form.control}
+										name="accountsId"
+										render={({ field }) => (
+											<FormItem className="gap-1.5">
+												<FormLabel className={LABEL_CLASS}>Account</FormLabel>
 												<Select
 													value={field.value}
 													onValueChange={(value) => {
@@ -263,11 +415,15 @@ export function TransactionDialog({
 													}}
 													disabled={metaLoading || accounts.length === 0 || isSubmitting}
 												>
-													<SelectTrigger className="w-full">
-														<SelectValue
-															placeholder={metaLoading ? "Loading..." : "Select account"}
-														/>
-													</SelectTrigger>
+													<FormControl>
+														<SelectTrigger
+															className={cn(FIELD_CLASS, "w-full data-[size=default]:h-[42px]")}
+														>
+															<SelectValue
+																placeholder={metaLoading ? "Loading…" : "Select account"}
+															/>
+														</SelectTrigger>
+													</FormControl>
 													<SelectContent>
 														{accounts.map((account) => (
 															<SelectItem key={account.id} value={account.id}>
@@ -276,183 +432,129 @@ export function TransactionDialog({
 														))}
 													</SelectContent>
 												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="currenciesId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Currency *</FormLabel>
-											<FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="currenciesId"
+										render={({ field }) => (
+											<FormItem className="gap-1.5">
+												<FormLabel className={LABEL_CLASS}>Currency</FormLabel>
 												<Select
 													value={field.value}
 													onValueChange={field.onChange}
 													disabled={metaLoading || currencies.length === 0 || isSubmitting}
 												>
-													<SelectTrigger className="w-full">
-														<SelectValue
-															placeholder={metaLoading ? "Loading..." : "Select currency"}
-														/>
-													</SelectTrigger>
+													<FormControl>
+														<SelectTrigger
+															className={cn(FIELD_CLASS, "w-full data-[size=default]:h-[42px]")}
+														>
+															<SelectValue placeholder={metaLoading ? "Loading…" : "Select"} />
+														</SelectTrigger>
+													</FormControl>
 													<SelectContent>
 														{currencies.map((currency) => (
 															<SelectItem key={currency.id} value={currency.id}>
-																{currency.symbol} {currency.isoCode}
+																{currency.isoCode} — {currency.symbol}
 															</SelectItem>
 														))}
 													</SelectContent>
 												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="amount"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Amount *</FormLabel>
-											<FormControl>
-												<Input
-													{...field}
-													type="text"
-													inputMode="decimal"
-													placeholder="0.00"
-													disabled={isSubmitting}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="type"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Type *</FormLabel>
-											<FormControl>
-												<Select
-													value={field.value}
-													onValueChange={field.onChange}
-													disabled={isSubmitting}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select type" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value="incoming">Incoming</SelectItem>
-														<SelectItem value="outgoing">Outgoing</SelectItem>
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+
+								<div className="grid gap-3 sm:grid-cols-2">
+									<FormField
+										control={form.control}
+										name="bookedAt"
+										render={({ field }) => (
+											<FormItem className="gap-1.5">
+												<FormLabel className={LABEL_CLASS}>Date</FormLabel>
+												<FormControl>
+													<Input
+														{...field}
+														type="datetime-local"
+														disabled={isSubmitting}
+														className={FIELD_CLASS}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="description"
+										render={({ field }) => (
+											<FormItem className="gap-1.5">
+												<FormLabel className={LABEL_CLASS}>Note</FormLabel>
+												<FormControl>
+													<Input
+														{...field}
+														placeholder="Optional"
+														disabled={isSubmitting}
+														className={FIELD_CLASS}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
 							</div>
-							<div className="grid gap-4 md:grid-cols-2">
-								<FormField
-									control={form.control}
-									name="bookedAt"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Booked at *</FormLabel>
-											<FormControl>
-												<Input {...field} type="datetime-local" disabled={isSubmitting} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="categoriesId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Category</FormLabel>
-											<FormControl>
-												<Select
-													value={field.value ?? UNCATEGORIZED_SELECT_VALUE}
-													onValueChange={(value) => {
-														if (value === UNCATEGORIZED_SELECT_VALUE) {
-															field.onChange(undefined);
-															return;
-														}
-														field.onChange(value);
-													}}
-													disabled={isSubmitting}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select category" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value={UNCATEGORIZED_SELECT_VALUE}>
-															Uncategorized
-														</SelectItem>
-														{categories.map((category) => (
-															<SelectItem key={category.id} value={category.id}>
-																{category.name}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
+
 							<FormField
 								control={form.control}
-								name="counterparty"
+								name="recurring"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Counterparty *</FormLabel>
+									<FormItem className="flex items-center gap-3">
+										<div className="flex-1 leading-snug">
+											<FormLabel className="text-[13.5px] font-normal">
+												Repeats every month
+											</FormLabel>
+											<p className="text-muted-foreground text-[11.5px]">
+												Marked with a repeat icon in your ledger
+											</p>
+										</div>
 										<FormControl>
-											<Input {...field} placeholder="e.g. Grocery store" disabled={isSubmitting} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="description"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Description</FormLabel>
-										<FormControl>
-											<textarea
-												{...field}
-												rows={3}
-												placeholder="Optional notes"
-												className="border-input focus-visible:ring-ring/50 dark:focus-visible:ring-ring/40 focus-visible:ring-offset-background placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex min-h-[6rem] w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
+											<Switch
+												checked={field.value}
+												onCheckedChange={field.onChange}
 												disabled={isSubmitting}
 											/>
 										</FormControl>
-										<FormMessage />
 									</FormItem>
 								)}
 							/>
-							<DialogFooter className="gap-2 sm:justify-between">
+
+							<div className="flex flex-col-reverse gap-2.5 sm:flex-row">
 								<Button
-									type="button"
+									type="submit"
 									variant="outline"
-									onClick={() => onOpenChange(false)}
-									disabled={isSubmitting}
+									className="h-11 flex-1 rounded-xl"
+									disabled={submitDisabled}
+									onClick={() => {
+										addAnother.current = true;
+									}}
 								>
-									Cancel
+									Save &amp; add another
 								</Button>
-								<Button type="submit" disabled={submitDisabled}>
-									{isSubmitting ? "Saving..." : "Save transaction"}
+								<Button
+									type="submit"
+									className="h-11 flex-1 rounded-xl"
+									disabled={submitDisabled}
+									onClick={() => {
+										addAnother.current = false;
+									}}
+								>
+									{isSubmitting ? "Saving…" : "Save transaction"}
 								</Button>
-							</DialogFooter>
+							</div>
 						</form>
 					</Form>
 				)}
@@ -477,6 +579,7 @@ function buildDefaultValues(meta: TransactionMetaResponse | null): TransactionFo
 		bookedAt: now,
 		description: "",
 		categoriesId: undefined,
+		recurring: false,
 	};
 }
 

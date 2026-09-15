@@ -48,7 +48,11 @@ export default async function TransactionsPage() {
 			/>
 			<div className="px-7 py-5.5">
 				<Suspense fallback={<p>Loading transactions…</p>}>
-					<TransactionsLedger accountNames={accountNames} categories={categories} />
+					<TransactionsLedger
+						accountNames={accountNames}
+						categories={categories}
+						primaryCurrency={currency}
+					/>
 				</Suspense>
 			</div>
 		</>

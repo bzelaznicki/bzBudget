@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, or, sum } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, or, sum } from "drizzle-orm";
 import { db } from "../db";
 import { budgets, budgetAlerts, transactions, categories, users, currencies } from "../schema";
 
@@ -124,6 +124,9 @@ export async function listBudgetsWithSpending(
 			gte(transactions.bookedAt, start),
 			lt(transactions.bookedAt, end),
 			eq(transactions.type, "outgoing"),
+			isNull(transactions.deletedAt),
+			// Moving money between your own accounts isn't spending.
+			isNull(transactions.transferId),
 		];
 		if (row.categoryId) {
 			conditions.push(eq(transactions.categoriesId, row.categoryId));
@@ -198,6 +201,8 @@ export async function getBudgetById(
 		gte(transactions.bookedAt, start),
 		lt(transactions.bookedAt, end),
 		eq(transactions.type, "outgoing"),
+		isNull(transactions.deletedAt),
+		isNull(transactions.transferId),
 	];
 	if (row.categoryId) {
 		conditions.push(eq(transactions.categoriesId, row.categoryId));

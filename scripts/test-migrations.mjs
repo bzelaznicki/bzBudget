@@ -61,6 +61,7 @@ try {
 	// Reproduce a preserved baseline database, before goals, with no migration history.
 	await client`DROP TABLE goals`;
 	await client`DROP TYPE goal_status`;
+	await client`ALTER TABLE transactions DROP COLUMN recurring, DROP COLUMN transfer_id`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await assert.rejects(
 		migrate((await import("drizzle-orm/postgres-js")).drizzle(client), {
@@ -72,6 +73,14 @@ try {
 	assert.equal(preserved.count, 2);
 	const [goalTable] = await client`SELECT to_regclass('public.goals') AS name`;
 	assert.equal(goalTable.name, "goals", "Preserved baseline upgrades to goals");
+	const transferColumns = await client`SELECT column_name FROM information_schema.columns
+		WHERE table_schema = 'public' AND table_name = 'transactions'
+		AND column_name IN ('recurring', 'transfer_id') ORDER BY column_name`;
+	assert.deepEqual(
+		transferColumns.map((column) => column.column_name),
+		["recurring", "transfer_id"],
+		"Preserved baseline upgrades to recurring and transfer columns",
+	);
 	const [currency] =
 		await client`INSERT INTO currencies (name, iso_code, symbol) VALUES ('Migration currency', 'TST', 'T') RETURNING id`;
 	const [savedGoal] =
@@ -84,6 +93,7 @@ try {
 	// The previous production schema had no budgets or week-start preference.
 	await client`DROP TABLE goals`;
 	await client`DROP TYPE goal_status`;
+	await client`ALTER TABLE transactions DROP COLUMN recurring, DROP COLUMN transfer_id`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await client`DROP TABLE budget_alerts, budgets`;
 	await client`ALTER TABLE users DROP COLUMN week_start_day`;
@@ -99,6 +109,7 @@ try {
 	// Incompatible existing enum values must roll back without baselining.
 	await client`DROP TABLE goals`;
 	await client`DROP TYPE goal_status`;
+	await client`ALTER TABLE transactions DROP COLUMN recurring, DROP COLUMN transfer_id`;
 	await client`DROP SCHEMA drizzle CASCADE`;
 	await client`ALTER TYPE budget_period ADD VALUE 'invalid'`;
 	await client`DROP TABLE budget_alerts, budgets`;

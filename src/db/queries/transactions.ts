@@ -14,8 +14,9 @@ import {
 	sql,
 	sum,
 } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "../db";
-import { transactions, currencies, categories } from "../schema";
+import { transactions, currencies, categories, bankAccounts } from "../schema";
 
 export interface TransactionResponse {
 	id: string;
@@ -39,6 +40,9 @@ export interface TransactionResponse {
 	externalId: string | null;
 	bookedAt: Date;
 	type: string;
+	recurring: boolean;
+	/** Set on both legs of a move between the user's own accounts. */
+	transferId: string | null;
 	createdAt: Date | null;
 	updatedAt: Date | null;
 }
@@ -65,6 +69,91 @@ export type CountTransactionsArgs = Pick<
 	"usersId" | "dateFrom" | "dateTo" | "dateBefore" | "search" | "categoryId" | "accountId"
 >;
 
+const TRANSACTION_COLUMNS = {
+	id: transactions.id,
+	usersId: transactions.usersId,
+	accountsId: transactions.accountsId,
+	amount: transactions.amount,
+	description: transactions.description,
+	counterparty: transactions.counterparty,
+	currenciesId: transactions.currenciesId,
+	categoriesId: transactions.categoriesId,
+	externalId: transactions.externalId,
+	bookedAt: transactions.bookedAt,
+	type: transactions.type,
+	recurring: transactions.recurring,
+	transferId: transactions.transferId,
+	createdAt: transactions.createdAt,
+	updatedAt: transactions.updatedAt,
+	currencyIsoCode: currencies.isoCode,
+	currencySymbol: currencies.symbol,
+	currencyPosition: currencies.position,
+	categoryId: categories.id,
+	categoryName: categories.name,
+	categoryType: categories.type,
+};
+
+function selectTransactions(executor: Pick<typeof db, "select"> = db) {
+	return executor
+		.select(TRANSACTION_COLUMNS)
+		.from(transactions)
+		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
+		.leftJoin(categories, eq(transactions.categoriesId, categories.id));
+}
+
+type TransactionRow = Awaited<ReturnType<typeof selectTransactions>>[number];
+
+function toTransactionResponse(row: TransactionRow): TransactionResponse {
+	return {
+		id: row.id,
+		usersId: row.usersId,
+		accountsId: row.accountsId,
+		amount: row.amount,
+		description: row.description,
+		counterparty: row.counterparty,
+		currenciesId: row.currenciesId,
+		currency: {
+			isoCode: row.currencyIsoCode,
+			symbol: row.currencySymbol,
+			position: row.currencyPosition === "before" ? "before" : "after",
+		},
+		categoriesId: row.categoriesId,
+		category: row.categoryId
+			? {
+					id: row.categoryId,
+					name: row.categoryName ?? "Uncategorized",
+					type: row.categoryType ?? "system",
+				}
+			: null,
+		externalId: row.externalId,
+		bookedAt: row.bookedAt,
+		type: row.type,
+		recurring: row.recurring,
+		transferId: row.transferId,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+	};
+}
+
+/** One live transaction the user owns, in the same shape the list endpoint returns. */
+export async function getUserTransaction(
+	usersId: string,
+	transactionId: string,
+	executor: Pick<typeof db, "select"> = db,
+): Promise<TransactionResponse | null> {
+	const [row] = await selectTransactions(executor)
+		.where(
+			and(
+				eq(transactions.usersId, usersId),
+				eq(transactions.id, transactionId),
+				isNull(transactions.deletedAt),
+			),
+		)
+		.limit(1);
+
+	return row ? toTransactionResponse(row) : null;
+}
+
 export async function createTransaction(
 	userId: string,
 	accountsId: string,
@@ -76,8 +165,9 @@ export async function createTransaction(
 	description?: string,
 	categoriesId?: string,
 	externalId?: string,
+	recurring = false,
 ): Promise<TransactionResponse | null> {
-	const insertedTransactions = await db
+	const [inserted] = await db
 		.insert(transactions)
 		.values({
 			usersId: userId,
@@ -90,91 +180,11 @@ export async function createTransaction(
 			description,
 			categoriesId,
 			externalId,
+			recurring,
 		})
-		.returning({
-			id: transactions.id,
-			usersId: transactions.usersId,
-			accountsId: transactions.accountsId,
-			amount: transactions.amount,
-			description: transactions.description,
-			counterparty: transactions.counterparty,
-			currenciesId: transactions.currenciesId,
-			categoriesId: transactions.categoriesId,
-			externalId: transactions.externalId,
-			bookedAt: transactions.bookedAt,
-			type: transactions.type,
-			createdAt: transactions.createdAt,
-			updatedAt: transactions.updatedAt,
-		});
+		.returning({ id: transactions.id });
 
-	if (insertedTransactions.length === 0) {
-		return null;
-	}
-
-	const transaction = insertedTransactions[0];
-
-	if (transaction.currenciesId == null) {
-		return null;
-	}
-
-	const [currencyResult, categoryResult] = await Promise.all([
-		db
-			.select({
-				isoCode: currencies.isoCode,
-				symbol: currencies.symbol,
-				position: currencies.position,
-			})
-			.from(currencies)
-			.where(eq(currencies.id, transaction.currenciesId))
-			.limit(1),
-		transaction.categoriesId
-			? db
-					.select({
-						id: categories.id,
-						name: categories.name,
-						type: categories.type,
-					})
-					.from(categories)
-					.where(eq(categories.id, transaction.categoriesId))
-					.limit(1)
-			: Promise.resolve([]),
-	]);
-
-	if (currencyResult.length === 0) {
-		return null;
-	}
-
-	const currency = currencyResult[0];
-	const category =
-		categoryResult.length > 0
-			? {
-					id: categoryResult[0].id,
-					name: categoryResult[0].name,
-					type: categoryResult[0].type,
-				}
-			: null;
-
-	return {
-		id: transaction.id,
-		usersId: transaction.usersId,
-		accountsId: transaction.accountsId,
-		amount: transaction.amount,
-		description: transaction.description,
-		counterparty: transaction.counterparty,
-		currenciesId: transaction.currenciesId,
-		currency: {
-			isoCode: currency.isoCode,
-			symbol: currency.symbol,
-			position: currency.position === "before" ? "before" : "after",
-		},
-		categoriesId: transaction.categoriesId,
-		category,
-		externalId: transaction.externalId,
-		bookedAt: transaction.bookedAt,
-		type: transaction.type,
-		createdAt: transaction.createdAt,
-		updatedAt: transaction.updatedAt,
-	};
+	return inserted ? getUserTransaction(userId, inserted.id) : null;
 }
 
 export async function getUserTransactions(
@@ -224,65 +234,13 @@ export async function getUserTransactions(
 
 	const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 
-	const userTransactions = await db
-		.select({
-			id: transactions.id,
-			usersId: transactions.usersId,
-			accountsId: transactions.accountsId,
-			amount: transactions.amount,
-			description: transactions.description,
-			counterparty: transactions.counterparty,
-			currenciesId: transactions.currenciesId,
-			categoriesId: transactions.categoriesId,
-			externalId: transactions.externalId,
-			bookedAt: transactions.bookedAt,
-			type: transactions.type,
-			createdAt: transactions.createdAt,
-			updatedAt: transactions.updatedAt,
-			currencyIsoCode: currencies.isoCode,
-			currencySymbol: currencies.symbol,
-			currencyPosition: currencies.position,
-			categoryId: categories.id,
-			categoryName: categories.name,
-			categoryType: categories.type,
-		})
-		.from(transactions)
-		.innerJoin(currencies, eq(transactions.currenciesId, currencies.id))
-		.leftJoin(categories, eq(transactions.categoriesId, categories.id))
+	const userTransactions = await selectTransactions()
 		.where(whereClause)
 		.orderBy(orderField, desc(transactions.id))
 		.limit(limit)
 		.offset(offset);
 
-	return userTransactions.length > 0
-		? userTransactions.map((transaction) => ({
-				id: transaction.id,
-				usersId: transaction.usersId,
-				accountsId: transaction.accountsId,
-				amount: transaction.amount,
-				description: transaction.description,
-				counterparty: transaction.counterparty,
-				currenciesId: transaction.currenciesId,
-				currency: {
-					isoCode: transaction.currencyIsoCode,
-					symbol: transaction.currencySymbol,
-					position: transaction.currencyPosition === "before" ? "before" : "after",
-				},
-				categoriesId: transaction.categoriesId,
-				category: transaction.categoryId
-					? {
-							id: transaction.categoryId,
-							name: transaction.categoryName ?? "Uncategorized",
-							type: transaction.categoryType ?? "system",
-						}
-					: null,
-				externalId: transaction.externalId,
-				bookedAt: transaction.bookedAt,
-				type: transaction.type,
-				createdAt: transaction.createdAt,
-				updatedAt: transaction.updatedAt,
-			}))
-		: null;
+	return userTransactions.length > 0 ? userTransactions.map(toTransactionResponse) : null;
 }
 
 function transactionFilters(args: CountTransactionsArgs) {
@@ -322,15 +280,183 @@ export async function countUserTransactions(args: CountTransactionsArgs): Promis
 	return Number(result[0]?.total ?? 0);
 }
 
+export class TransactionUpdateError extends Error {}
+
+/**
+ * Applies detail-sheet edits. For a transfer leg the date and note apply to both legs, so the
+ * pair never disagrees; a category makes no sense on a move and is rejected.
+ */
+export async function updateUserTransaction(
+	usersId: string,
+	transactionId: string,
+	update: {
+		counterparty?: string;
+		categoriesId?: string | null;
+		description?: string | null;
+		bookedAt?: Date;
+		recurring?: boolean;
+	},
+): Promise<TransactionResponse | null> {
+	const existing = await getUserTransaction(usersId, transactionId);
+	if (!existing) return null;
+
+	if (existing.transferId && update.categoriesId) {
+		throw new TransactionUpdateError("Transfers between your accounts don't take a category");
+	}
+
+	if (update.categoriesId) {
+		const [category] = await db
+			.select({ id: categories.id })
+			.from(categories)
+			.where(
+				and(
+					eq(categories.id, update.categoriesId),
+					or(isNull(categories.usersId), eq(categories.usersId, usersId)),
+				),
+			)
+			.limit(1);
+		if (!category) throw new TransactionUpdateError("Invalid category");
+	}
+
+	const timestamp = new Date();
+	const description = update.description === "" ? null : update.description;
+
+	await db.transaction(async (tx) => {
+		await tx
+			.update(transactions)
+			.set({
+				updatedAt: timestamp,
+				...(update.counterparty !== undefined ? { counterparty: update.counterparty } : {}),
+				...(update.categoriesId !== undefined ? { categoriesId: update.categoriesId } : {}),
+			})
+			.where(and(eq(transactions.usersId, usersId), eq(transactions.id, transactionId)));
+
+		if (
+			description !== undefined ||
+			update.bookedAt !== undefined ||
+			update.recurring !== undefined
+		) {
+			const shared = {
+				updatedAt: timestamp,
+				...(update.recurring !== undefined ? { recurring: update.recurring } : {}),
+				...(description !== undefined ? { description } : {}),
+				...(update.bookedAt !== undefined ? { bookedAt: update.bookedAt } : {}),
+			};
+			await tx
+				.update(transactions)
+				.set(shared)
+				.where(
+					and(
+						eq(transactions.usersId, usersId),
+						existing.transferId
+							? eq(transactions.transferId, existing.transferId)
+							: eq(transactions.id, transactionId),
+						isNull(transactions.deletedAt),
+					),
+				);
+		}
+	});
+
+	return getUserTransaction(usersId, transactionId);
+}
+
+/** Soft-deletes a transaction. Deleting either leg of a transfer removes the pair. */
 export async function deleteUserTransaction(userId: string, transactionId: string) {
 	const timestamp = new Date();
-	const res = await db
-		.update(transactions)
-		.set({ updatedAt: timestamp, deletedAt: timestamp })
-		.where(and(eq(transactions.usersId, userId), eq(transactions.id, transactionId)))
-		.returning();
+	return db.transaction(async (tx) => {
+		const [res] = await tx
+			.update(transactions)
+			.set({ updatedAt: timestamp, deletedAt: timestamp })
+			.where(
+				and(
+					eq(transactions.usersId, userId),
+					eq(transactions.id, transactionId),
+					isNull(transactions.deletedAt),
+				),
+			)
+			.returning();
 
-	return res[0] ?? null;
+		if (res?.transferId) {
+			await tx
+				.update(transactions)
+				.set({ updatedAt: timestamp, deletedAt: timestamp })
+				.where(
+					and(
+						eq(transactions.usersId, userId),
+						eq(transactions.transferId, res.transferId),
+						isNull(transactions.deletedAt),
+					),
+				);
+		}
+
+		return res ?? null;
+	});
+}
+
+export class TransferError extends Error {}
+
+/**
+ * Moves money between two of the user's active accounts as a pair of linked legs: outgoing
+ * on the source, incoming on the destination. Both accounts must share a currency — there
+ * are no FX rates to convert with.
+ */
+export async function createTransfer(
+	usersId: string,
+	input: {
+		fromAccountId: string;
+		toAccountId: string;
+		amount: number;
+		bookedAt: Date;
+		description?: string;
+	},
+): Promise<{ transferId: string; from: TransactionResponse; to: TransactionResponse }> {
+	const accounts = await db
+		.select({
+			id: bankAccounts.id,
+			name: bankAccounts.name,
+			currenciesId: bankAccounts.currenciesId,
+		})
+		.from(bankAccounts)
+		.where(and(eq(bankAccounts.usersId, usersId), isNull(bankAccounts.deletedAt)));
+
+	const from = accounts.find((account) => account.id === input.fromAccountId);
+	const to = accounts.find((account) => account.id === input.toAccountId);
+	if (!from || !to) throw new TransferError("Account not found");
+	if (from.id === to.id) throw new TransferError("Pick two different accounts");
+	if (from.currenciesId !== to.currenciesId) {
+		throw new TransferError("Both accounts need the same currency to move money between them");
+	}
+
+	const transferId = randomUUID();
+	const description = input.description || undefined;
+	const leg = {
+		usersId,
+		amount: input.amount.toFixed(2),
+		currenciesId: from.currenciesId,
+		bookedAt: input.bookedAt,
+		description,
+		transferId,
+	};
+
+	const [fromLeg, toLeg] = await db.transaction(async (tx) => {
+		const [outLeg] = await tx
+			.insert(transactions)
+			.values({ ...leg, accountsId: from.id, counterparty: to.name, type: "outgoing" })
+			.returning({ id: transactions.id });
+		const [inLeg] = await tx
+			.insert(transactions)
+			.values({ ...leg, accountsId: to.id, counterparty: from.name, type: "incoming" })
+			.returning({ id: transactions.id });
+		// Read back inside the transaction so a failure here rolls the legs back.
+		const [fromRow, toRow] = await Promise.all([
+			getUserTransaction(usersId, outLeg.id, tx),
+			getUserTransaction(usersId, inLeg.id, tx),
+		]);
+		if (!fromRow || !toRow) throw new Error("Transfer could not be read back");
+		return [fromRow, toRow];
+	});
+
+	return { transferId, from: fromLeg, to: toLeg };
 }
 
 export interface GetTransactionCountsPerCategoryArgs {
@@ -360,6 +486,7 @@ export async function getTransactionCountsPerCategory(
 		gte(transactions.bookedAt, dateFrom),
 		lte(transactions.bookedAt, dateTo),
 		isNull(transactions.deletedAt),
+		isNull(transactions.transferId),
 	];
 	if (args.type) {
 		filters.push(eq(transactions.type, args.type));
