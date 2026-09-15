@@ -1,6 +1,6 @@
 import { bankAccounts } from "../schema";
 import { db } from "../db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, desc, isNotNull, isNull } from "drizzle-orm";
 
 export interface BankAccountResponse {
 	id: string;
@@ -48,6 +48,32 @@ export async function getUserBankAccounts(
 		.offset(offset);
 
 	return accounts.length > 0 ? accounts : null;
+}
+
+/** One account the user owns, archived or not — the detail page shows both. */
+export async function getUserBankAccount(
+	usersId: string,
+	bankAccountsId: string,
+): Promise<BankAccountResponse | null> {
+	const [account] = await db
+		.select()
+		.from(bankAccounts)
+		.where(and(eq(bankAccounts.usersId, usersId), eq(bankAccounts.id, bankAccountsId)))
+		.limit(1);
+
+	return account ?? null;
+}
+
+/**
+ * Archived accounts, most recently archived first. Archiving is the soft delete: the row
+ * keeps its transactions and can be restored.
+ */
+export async function getArchivedBankAccounts(usersId: string): Promise<BankAccountResponse[]> {
+	return db
+		.select()
+		.from(bankAccounts)
+		.where(and(eq(bankAccounts.usersId, usersId), isNotNull(bankAccounts.deletedAt)))
+		.orderBy(desc(bankAccounts.deletedAt));
 }
 
 export async function deleteUserBankAccount(

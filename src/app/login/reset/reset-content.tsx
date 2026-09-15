@@ -1,236 +1,275 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { IconArrowLeft, IconCircleCheck, IconLinkOff, IconMail } from "@tabler/icons-react";
+import { useSearchParams } from "next/navigation";
 
 import { AuthScaffold } from "@/components/auth/auth-scaffold";
-import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+	AuthHeading,
+	AuthNote,
+	AuthStatePanel,
+	FormAlert,
+	InlineAction,
+	PasswordField,
+} from "@/components/auth/auth-fields";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { authClient } from "@/lib/auth-client";
 import { captureClientEvent } from "@/instrumentation-client";
+import { authClient } from "@/lib/auth-client";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password-strength";
 
+/**
+ * Both halves of password recovery. Without a token the page asks for an email; the link
+ * in that email lands back here with `?token=`, which switches to choosing a new password.
+ * Better Auth sends `?error=INVALID_TOKEN` instead when the link has expired.
+ */
 export function ResetPasswordContent() {
 	const searchParams = useSearchParams();
-	const router = useRouter();
+	const token = searchParams.get("token");
+	const tokenError = searchParams.get("error");
+
+	return (
+		<AuthScaffold
+			highlight="Back in control"
+			title="Locked out happens. Getting back in is quick."
+			description="We email a one-time link. Open it on any device and choose a new password."
+			benefits={[
+				{ title: "Single use", description: "Each link works once and expires after 30 minutes." },
+				{
+					title: "Nothing changes until you save",
+					description: "Your old password keeps working until then.",
+				},
+				{ title: "Human help", description: "Still stuck? Write to support@bzbudget.app." },
+			]}
+		>
+			{tokenError ? (
+				<ExpiredLinkState />
+			) : token ? (
+				<SetNewPasswordForm token={token} />
+			) : (
+				<RequestLinkForm />
+			)}
+		</AuthScaffold>
+	);
+}
+
+function BackToSignIn() {
+	return (
+		<Link
+			href="/login"
+			className="text-muted-foreground hover:text-foreground flex w-fit items-center gap-1.5 text-[12.5px]"
+		>
+			<IconArrowLeft className="size-3.5" />
+			Back to sign in
+		</Link>
+	);
+}
+
+function RequestLinkForm() {
 	const [email, setEmail] = useState("");
-	const [code, setCode] = useState("");
-	const [newPassword, setNewPassword] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
 	const [isRequesting, setIsRequesting] = useState(false);
-	const [isResetting, setIsResetting] = useState(false);
-	const [activeTab, setActiveTab] = useState<"link" | "code">("link");
+	const [error, setError] = useState<string | null>(null);
+	const [sentTo, setSentTo] = useState<string | null>(null);
 
-	useEffect(() => {
-		const tabParam = searchParams.get("tab");
-		const codeParam = searchParams.get("token");
-
-		if (tabParam === "code" || codeParam) {
-			setActiveTab("code");
-		}
-
-		if (codeParam && code === "") {
-			setCode(codeParam);
-		}
-	}, [searchParams, code]);
-
-	const handleRequestLink = async (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
+	const requestLink = async (address: string) => {
 		setIsRequesting(true);
+		setError(null);
 		captureClientEvent("password_reset_link_requested");
 
 		try {
-			const { data, error } = await authClient.requestPasswordReset({
-				email,
+			const { error: requestError } = await authClient.requestPasswordReset({
+				email: address,
 				redirectTo: "/login/reset",
 			});
 
-			if (error !== null) {
-				toast.error("Error resetting password");
-				captureClientEvent("password_reset_link_failed", { error: error.message });
+			if (requestError !== null) {
+				setError(requestError.message ?? "We couldn't send the link. Please try again.");
+				captureClientEvent("password_reset_link_failed", { error: requestError.message });
 				return;
 			}
-			toast.success(data.message);
 			captureClientEvent("password_reset_link_succeeded");
+			setSentTo(address);
+		} catch (err) {
+			const message = err instanceof Error && err.message ? err.message : undefined;
+			setError(message ?? "We couldn't send the link. Please try again.");
+			captureClientEvent("password_reset_link_failed", { error: message });
 		} finally {
 			setIsRequesting(false);
 		}
 	};
 
-	const handleResetPassword = async (event: FormEvent<HTMLFormElement>) => {
+	if (sentTo) {
+		return (
+			<AuthStatePanel
+				icon={<IconMail />}
+				title="Check your inbox"
+				footer={
+					<>
+						{error ? <FormAlert>{error}</FormAlert> : null}
+						<AuthNote>
+							Nothing yet? Check spam, or{" "}
+							<InlineAction onClick={() => void requestLink(sentTo)} disabled={isRequesting}>
+								send it again
+							</InlineAction>
+							.
+						</AuthNote>
+						<p className="text-muted-foreground text-[12.5px]">
+							Wrong address? <InlineAction onClick={() => setSentTo(null)}>Change it</InlineAction>
+						</p>
+					</>
+				}
+			>
+				If <span className="text-foreground font-medium">{sentTo}</span> has an account, a reset
+				link is on its way. It expires in 30 minutes.
+			</AuthStatePanel>
+		);
+	}
+
+	return (
+		<form
+			className="flex flex-col gap-4"
+			onSubmit={(event: FormEvent<HTMLFormElement>) => {
+				event.preventDefault();
+				void requestLink(email);
+			}}
+		>
+			<AuthHeading
+				title="Reset your password"
+				description="We'll email a link that works for 30 minutes."
+			/>
+			{error ? <FormAlert>{error}</FormAlert> : null}
+			<div className="grid gap-1.5">
+				<Label
+					htmlFor="reset-email"
+					className="text-secondary-foreground text-[12.5px] font-normal"
+				>
+					Email
+				</Label>
+				<Input
+					id="reset-email"
+					type="email"
+					value={email}
+					onChange={(event) => setEmail(event.target.value)}
+					required
+					autoComplete="email"
+					className="h-11"
+				/>
+			</div>
+			<Button type="submit" className="h-11 w-full rounded-xl" disabled={isRequesting}>
+				{isRequesting ? <Loader2 className="size-4 animate-spin" /> : "Send reset link"}
+			</Button>
+			<BackToSignIn />
+		</form>
+	);
+}
+
+function SetNewPasswordForm({ token }: { token: string }) {
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [isResetting, setIsResetting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [done, setDone] = useState(false);
+
+	// Only complain about the confirmation once it's at least as long as the original,
+	// so the error doesn't flash on every keystroke.
+	const mismatch =
+		confirmPassword.length > 0 &&
+		confirmPassword.length >= newPassword.length &&
+		confirmPassword !== newPassword;
+	const canSubmit =
+		newPassword.length >= MIN_PASSWORD_LENGTH && newPassword === confirmPassword && !isResetting;
+
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
+		if (!canSubmit) return;
 		setIsResetting(true);
+		setError(null);
 		captureClientEvent("password_reset_submitted");
 
 		try {
-			const { error } = await authClient.resetPassword({ newPassword, token: code });
+			const { error: resetError } = await authClient.resetPassword({ newPassword, token });
 
-			if (error) {
-				toast.error(error.message ?? "Failed to reset password");
-				captureClientEvent("password_reset_failed", { error: error.message });
+			if (resetError) {
+				setError(resetError.message ?? "We couldn't save that password. Please try again.");
+				captureClientEvent("password_reset_failed", { error: resetError.message });
 				return;
 			}
-			toast.success("Password reset successfully!");
 			captureClientEvent("password_reset_succeeded");
-			router.push("/login");
+			setDone(true);
+		} catch (err) {
+			const message = err instanceof Error && err.message ? err.message : undefined;
+			setError(message ?? "We couldn't save that password. Please try again.");
+			captureClientEvent("password_reset_failed", { error: message });
 		} finally {
 			setIsResetting(false);
 		}
 	};
 
-	return (
-		<AuthScaffold
-			highlight="Back in control"
-			title="Reset your password"
-			description="Request a secure link or update your password with the reset code you already have."
-			benefits={[
-				{
-					title: "Secure-by-default",
-					description: "Every reset link expires quickly and can only be used once.",
-				},
-				{
-					title: "Flexible flows",
-					description: "Use either an email link or a code from your authenticator.",
-				},
-				{
-					title: "Guided support",
-					description: "Need help? Reach out anytime at support@bzbudget.app.",
-				},
-			]}
-			footer="Trouble regaining access? Our support team can verify your identity and restore your account."
-		>
-			<Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "link" | "code")}>
-				<Card className="w-full border border-border shadow-xl shadow-black/5">
-					<CardHeader className="space-y-4">
-						<div>
-							<CardTitle className="text-xl text-foreground">Reset your password</CardTitle>
-							<CardDescription className="text-sm text-muted-foreground">
-								Start with an email link or jump straight to entering your reset code.
-							</CardDescription>
-						</div>
-						<TabsList>
-							<TabsTrigger value="link">Send reset link</TabsTrigger>
-							<TabsTrigger value="code">Enter reset code</TabsTrigger>
-						</TabsList>
-					</CardHeader>
-					<CardContent className="space-y-6">
-						<TabsContent value="link" className="space-y-4">
-							<form
-								className="space-y-4"
-								onSubmit={(event) => {
-									void handleRequestLink(event);
-								}}
-							>
-								<div className="grid gap-2">
-									<Label htmlFor="reset-email">Account email</Label>
-									<Input
-										id="reset-email"
-										type="email"
-										placeholder="you@example.com"
-										value={email}
-										onChange={(event) => setEmail(event.target.value)}
-										required
-										autoComplete="email"
-									/>
-								</div>
-								<p className="text-sm text-muted-foreground">
-									We send a one-time link you can use for the next 15 minutes. Make sure you have
-									access to this inbox before continuing.
-								</p>
-								<Button type="submit" className="w-full" disabled={isRequesting}>
-									{isRequesting ? (
-										<>
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-											Sending link…
-										</>
-									) : (
-										"Email me a reset link"
-									)}
-								</Button>
-							</form>
-						</TabsContent>
+	if (done) {
+		return (
+			<AuthStatePanel
+				icon={<IconCircleCheck />}
+				title="Password saved"
+				footer={
+					<Button asChild className="h-11 w-full rounded-xl">
+						<Link href="/login">Sign in</Link>
+					</Button>
+				}
+			>
+				Use your new password from now on.
+			</AuthStatePanel>
+		);
+	}
 
-						<TabsContent value="code" className="space-y-4">
-							<form
-								className="space-y-4"
-								onSubmit={(event) => {
-									void handleResetPassword(event);
-								}}
-							>
-								<div className="grid gap-2">
-									<Label htmlFor="reset-code">Reset code</Label>
-									<Input
-										id="reset-code"
-										placeholder="Enter the 6-digit code"
-										value={code}
-										onChange={(event) => setCode(event.target.value)}
-										required
-										autoComplete="one-time-code"
-									/>
-									<p className="text-xs text-muted-foreground">
-										This code appears in the email or authenticator message we just sent you.
-									</p>
-								</div>
-								<div className="grid gap-2">
-									<Label htmlFor="new-password">New password</Label>
-									<Input
-										id="new-password"
-										type="password"
-										placeholder="••••••••"
-										value={newPassword}
-										onChange={(event) => setNewPassword(event.target.value)}
-										required
-										autoComplete="new-password"
-									/>
-								</div>
-								<div className="grid gap-2">
-									<Label htmlFor="confirm-password">Confirm new password</Label>
-									<Input
-										id="confirm-password"
-										type="password"
-										placeholder="••••••••"
-										value={confirmPassword}
-										onChange={(event) => setConfirmPassword(event.target.value)}
-										required
-										autoComplete="new-password"
-									/>
-								</div>
-								<Button type="submit" className="w-full" disabled={isResetting}>
-									{isResetting ? (
-										<>
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-											Updating password…
-										</>
-									) : (
-										"Update password"
-									)}
-								</Button>
-							</form>
-						</TabsContent>
-					</CardContent>
-					<CardFooter className="flex flex-col gap-3 border-t border-border bg-sunk/60 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-						<span>Remembered your credentials?</span>
-						<Link
-							href="/login"
-							className="font-medium text-income-foreground transition hover:text-income-foreground"
-						>
-							Return to sign in
-						</Link>
-					</CardFooter>
-				</Card>
-			</Tabs>
-		</AuthScaffold>
+	return (
+		<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+			<AuthHeading
+				title="Choose a new password"
+				description="Your old password stops working once you save."
+			/>
+			{error ? <FormAlert>{error}</FormAlert> : null}
+			<PasswordField
+				id="new-password"
+				label="New password"
+				value={newPassword}
+				onChange={setNewPassword}
+				autoComplete="new-password"
+				showStrength
+			/>
+			<PasswordField
+				id="confirm-password"
+				label="Confirm"
+				value={confirmPassword}
+				onChange={setConfirmPassword}
+				autoComplete="new-password"
+				error={mismatch ? "These don't match yet." : null}
+			/>
+			<Button type="submit" className="h-11 w-full rounded-xl" disabled={!canSubmit}>
+				{isResetting ? <Loader2 className="size-4 animate-spin" /> : "Save password"}
+			</Button>
+		</form>
+	);
+}
+
+function ExpiredLinkState() {
+	return (
+		<AuthStatePanel
+			icon={<IconLinkOff />}
+			title="This link has expired"
+			footer={
+				<>
+					<Button asChild className="h-11 w-full rounded-xl">
+						<Link href="/login/reset">Send a new link</Link>
+					</Button>
+					<BackToSignIn />
+				</>
+			}
+		>
+			Reset links work once and only for 30 minutes. Request a fresh one — it takes a few seconds.
+		</AuthStatePanel>
 	);
 }
