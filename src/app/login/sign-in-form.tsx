@@ -65,7 +65,7 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 			rememberMe,
 		});
 		try {
-			await signIn.email(
+			const { error: signInError } = await signIn.email(
 				{
 					email,
 					password,
@@ -97,9 +97,12 @@ export function SignInForm({ emailConfirmed }: SignInFormProps) {
 					},
 				},
 			);
-			captureClientEvent("sign_in_succeeded", {
-				rememberMe,
-			});
+			// Failures resolve with `error` rather than throwing; onError already recorded them.
+			if (!signInError) {
+				captureClientEvent("sign_in_succeeded", {
+					rememberMe,
+				});
+			}
 		} catch (err) {
 			const message =
 				err instanceof Error && err.message ? err.message : "Unable to sign in. Please try again.";
