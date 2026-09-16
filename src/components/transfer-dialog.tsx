@@ -138,7 +138,7 @@ function TransferForm({
 	}
 
 	return (
-		<form onSubmit={submit} className="grid gap-4">
+		<form onSubmit={submit} className="grid min-w-0 gap-4">
 			{error ? <FormAlert>{error}</FormAlert> : null}
 
 			<div className="bg-sunk/40 border-border rounded-2xl border px-4.5 py-4 focus-within:border-[var(--income)]">

@@ -52,7 +52,7 @@ type TransactionMetaResponse = {
 };
 
 const LABEL_CLASS = "text-secondary-foreground text-[12.5px] font-normal";
-const FIELD_CLASS = "h-[42px] rounded-[11px]";
+const FIELD_CLASS = "h-[42px] w-full min-w-0 rounded-[11px]";
 
 export interface TransactionDialogProps {
 	open: boolean;
@@ -269,7 +269,7 @@ export function TransactionDialog({
 							onSubmit={form.handleSubmit(onSubmit, () => {
 								addAnother.current = false;
 							})}
-							className="grid gap-4.5"
+							className="grid min-w-0 gap-4.5"
 						>
 							{showAccountHint ? (
 								<div className="bg-sunk/60 border-border text-secondary-foreground rounded-xl border px-3.5 py-3 text-[12.5px]">
@@ -326,12 +326,12 @@ export function TransactionDialog({
 								)}
 							/>
 
-							<div className="grid gap-3">
+							<div className="grid min-w-0 gap-3">
 								<FormField
 									control={form.control}
 									name="counterparty"
 									render={({ field }) => (
-										<FormItem className="gap-1.5">
+										<FormItem className="min-w-0 gap-1.5">
 											<FormLabel className={LABEL_CLASS}>Merchant</FormLabel>
 											<div className="relative">
 												{counterparty.trim() ? (
@@ -359,7 +359,7 @@ export function TransactionDialog({
 										control={form.control}
 										name="categoriesId"
 										render={({ field }) => (
-											<FormItem className="gap-1.5">
+											<FormItem className="min-w-0 gap-1.5">
 												<FormLabel className={LABEL_CLASS}>Category</FormLabel>
 												<div
 													role="radiogroup"
@@ -395,12 +395,12 @@ export function TransactionDialog({
 									/>
 								) : null}
 
-								<div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
+								<div className="grid min-w-0 gap-3 sm:grid-cols-[1.4fr_1fr]">
 									<FormField
 										control={form.control}
 										name="accountsId"
 										render={({ field }) => (
-											<FormItem className="gap-1.5">
+											<FormItem className="min-w-0 gap-1.5">
 												<FormLabel className={LABEL_CLASS}>Account</FormLabel>
 												<Select
 													value={field.value}
@@ -440,7 +440,7 @@ export function TransactionDialog({
 										control={form.control}
 										name="currenciesId"
 										render={({ field }) => (
-											<FormItem className="gap-1.5">
+											<FormItem className="min-w-0 gap-1.5">
 												<FormLabel className={LABEL_CLASS}>Currency</FormLabel>
 												<Select
 													value={field.value}
@@ -468,12 +468,12 @@ export function TransactionDialog({
 									/>
 								</div>
 
-								<div className="grid gap-3 sm:grid-cols-2">
+								<div className="grid min-w-0 gap-3 sm:grid-cols-2">
 									<FormField
 										control={form.control}
 										name="bookedAt"
 										render={({ field }) => (
-											<FormItem className="gap-1.5">
+											<FormItem className="min-w-0 gap-1.5">
 												<FormLabel className={LABEL_CLASS}>Date</FormLabel>
 												<FormControl>
 													<Input
@@ -491,7 +491,7 @@ export function TransactionDialog({
 										control={form.control}
 										name="description"
 										render={({ field }) => (
-											<FormItem className="gap-1.5">
+											<FormItem className="min-w-0 gap-1.5">
 												<FormLabel className={LABEL_CLASS}>Note</FormLabel>
 												<FormControl>
 													<Input
