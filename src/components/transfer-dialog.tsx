@@ -138,7 +138,7 @@ function TransferForm({
 	}
 
 	return (
-		<form onSubmit={submit} className="grid min-w-0 gap-4">
+		<form onSubmit={submit} className="grid min-w-0 grid-cols-1 gap-4">
 			{error ? <FormAlert>{error}</FormAlert> : null}
 
 			<div className="bg-sunk/40 border-border rounded-2xl border px-4.5 py-4 focus-within:border-[var(--income)]">
@@ -148,6 +148,7 @@ function TransferForm({
 				<div className="mt-1 flex items-baseline gap-2">
 					<input
 						id="transfer-amount"
+						size={1}
 						value={amount}
 						onChange={(event) => setAmount(event.target.value)}
 						inputMode="decimal"

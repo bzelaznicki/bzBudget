@@ -269,7 +269,7 @@ export function TransactionDialog({
 							onSubmit={form.handleSubmit(onSubmit, () => {
 								addAnother.current = false;
 							})}
-							className="grid min-w-0 gap-4.5"
+							className="grid min-w-0 grid-cols-1 gap-4.5"
 						>
 							{showAccountHint ? (
 								<div className="bg-sunk/60 border-border text-secondary-foreground rounded-xl border px-3.5 py-3 text-[12.5px]">
@@ -308,6 +308,7 @@ export function TransactionDialog({
 													{...field}
 													type="text"
 													inputMode="decimal"
+													size={1}
 													placeholder="0.00"
 													autoComplete="off"
 													autoFocus
@@ -326,7 +327,7 @@ export function TransactionDialog({
 								)}
 							/>
 
-							<div className="grid min-w-0 gap-3">
+							<div className="grid min-w-0 grid-cols-1 gap-3">
 								<FormField
 									control={form.control}
 									name="counterparty"
